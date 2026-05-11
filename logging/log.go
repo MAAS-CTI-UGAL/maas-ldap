@@ -1,0 +1,23 @@
+package logging
+
+import (
+	"io"
+	"log"
+	"os"
+)
+
+// Configure sends standard log output to stderr and the configured log file.
+func Configure(logFile string) (*os.File, error) {
+	file, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0660)
+	if err != nil {
+		return nil, err
+	}
+
+	log.SetOutput(io.MultiWriter(os.Stderr, file))
+	return file, nil
+}
+
+// Failure emits the user and failed step in a consistent format.
+func Failure(username, failedStep string, err error) {
+	log.Printf("user=%s failed_step=%s error=%v", username, failedStep, err)
+}
