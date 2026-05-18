@@ -1,4 +1,4 @@
-package handlers
+package proxy
 
 import (
 	"bytes"
@@ -51,13 +51,13 @@ type proxyErrorRecorder struct {
 	err error
 }
 
-// record saves proxy errors so proxyToTarget can return them to the caller.
+// record saves proxy errors so ToTarget can return them to the caller.
 func (r *proxyErrorRecorder) record(err error) {
 	r.err = err
 }
 
-// proxyToTarget forwards the rewritten login request and streams the target response.
-func proxyToTarget(
+// ToTarget forwards the rewritten login request and streams the target response.
+func ToTarget(
 	w http.ResponseWriter,
 	r *http.Request,
 	appConfig config.AppConfig,

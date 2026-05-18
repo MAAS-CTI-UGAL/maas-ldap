@@ -11,7 +11,6 @@ const (
 // AppSettings contains application-wide routes and file paths.
 type AppSettings struct {
 	ListenAddress string
-	LoginPath     string
 	LogFile       string
 	UsersFile     string
 }
@@ -19,7 +18,6 @@ type AppSettings struct {
 func loadAppSettings() AppSettings {
 	return AppSettings{
 		ListenAddress: defaultListenAddress,
-		LoginPath:     defaultLoginPath,
 		LogFile:       envOrDefault(envLogFile, defaultLogFile),
 		UsersFile:     defaultUsersFile,
 	}

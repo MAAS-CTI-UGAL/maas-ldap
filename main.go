@@ -17,13 +17,11 @@ func main() {
 	}
 	defer logFile.Close()
 
-	loginHandler := handlers.NewLoginHandler(appConfig)
-
-	// The proxy only exposes the target login route.
-	http.HandleFunc(appConfig.App.LoginPath, loginHandler)
+	mux := http.NewServeMux()
+	handlers.AddRoutes(mux, appConfig)
 
 	log.Printf("Server running on %s", appConfig.App.ListenAddress)
-	err = http.ListenAndServe(appConfig.App.ListenAddress, nil)
+	err = http.ListenAndServe(appConfig.App.ListenAddress, mux)
 	if err != nil {
 		log.Fatal(err)
 	}

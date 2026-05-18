@@ -1,4 +1,4 @@
-package handlers
+package login
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"maas-ldap/config"
+	"maas-ldap/handlers/proxy"
 	maasldap "maas-ldap/ldap"
 	"maas-ldap/logging"
 )
@@ -25,8 +26,8 @@ var (
 	errTargetProxy    = errors.New("target proxy failed")
 )
 
-// NewLoginHandler creates the login endpoint handler from bootstrap config.
-func NewLoginHandler(appConfig config.AppConfig) http.HandlerFunc {
+// NewHandler creates the login endpoint handler from bootstrap config.
+func NewHandler(appConfig config.AppConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		handleLogin(w, r, appConfig)
 	}
@@ -58,6 +59,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
+
 	if !allowed {
 		logging.Failure(login.username, "ldap_group_check", errLDAPGroupCheck)
 		http.Error(w, "Bad request", http.StatusBadRequest)
@@ -65,6 +67,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 	}
 
 	user, ok := appConfig.Users[login.username]
+
 	if !ok {
 		logging.Failure(login.username, "password_mapping", errPasswordMap)
 		http.Error(w, "Bad request", http.StatusBadRequest)
@@ -75,7 +78,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 	login.form.Set("password", user.Password)
 	proxyBody := []byte(login.form.Encode())
 
-	if err := proxyToTarget(w, r, appConfig, "login", proxyBody); err != nil {
+	if err := proxy.ToTarget(w, r, appConfig, config.LoginMAAS, proxyBody); err != nil {
 		logging.Failure(login.username, "target_proxy", errTargetProxy)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
