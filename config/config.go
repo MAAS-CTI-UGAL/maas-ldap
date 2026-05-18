@@ -60,8 +60,7 @@ func Bootstrap() AppConfig {
 
 	appSettings := loadAppSettings()
 	ldapConfig := loadLDAPConfig()
-	//Remove this if there's no need for MAAS
-	maasConfig := loadBackendConfig("MAAS_URL")
+	maasConfig := loadBackendConfig("MAAS_URL", BackendEndpointPaths)
 
 	users, err := loadUsers(appSettings.UsersFile)
 	if err != nil {
@@ -108,14 +107,14 @@ func loadLDAPConfig() LDAPConfig {
 	}
 }
 
-func loadBackendConfig(baseURLKey string) BackendConfig {
+func loadBackendConfig(baseURLKey string, endpointPaths map[string]string) BackendConfig {
 	baseURL := os.Getenv(baseURLKey)
 	if baseURL == "" {
 		log.Fatalf("backend configuration is incomplete. Please set %s.", baseURLKey)
 	}
 
 	urls := map[string]url.URL{}
-	for endpointKey, endpointPath := range BackendEndpointPaths {
+	for endpointKey, endpointPath := range endpointPaths {
 		endpointURL, err := buildBackendURL(baseURL, endpointPath)
 		if err != nil {
 			if errors.Is(err, errBackendURLMissingHost) {
