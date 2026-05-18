@@ -11,7 +11,7 @@ import (
 func main() {
 	// Load configuration before wiring handlers so startup fails fast on bad env.
 	appConfig := config.Bootstrap()
-	logFile, err := logging.Configure(appConfig.App.LogFile)
+	logFile, err := logging.Configure(appConfig.Settings.LogFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -20,8 +20,8 @@ func main() {
 	mux := http.NewServeMux()
 	handlers.AddRoutes(mux, appConfig)
 
-	log.Printf("Server running on %s", appConfig.App.ListenAddress)
-	err = http.ListenAndServe(appConfig.App.ListenAddress, mux)
+	log.Printf("Server running on %s", appConfig.Settings.ListenAddress)
+	err = http.ListenAndServe(appConfig.Settings.ListenAddress, mux)
 	if err != nil {
 		log.Fatal(err)
 	}

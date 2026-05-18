@@ -26,7 +26,7 @@ var (
 
 // AppConfig contains the runtime objects needed by the HTTP handlers.
 type AppConfig struct {
-	App        AppSettings
+	Settings   AppSettings
 	LDAP       LDAPConfig
 	MAAS       BackendConfig
 	Users      map[string]UserMapping
@@ -70,7 +70,7 @@ func Bootstrap() AppConfig {
 	}
 
 	return AppConfig{
-		App:        appSettings,
+		Settings:   appSettings,
 		LDAP:       ldapConfig,
 		MAAS:       maasConfig,
 		Users:      users,
