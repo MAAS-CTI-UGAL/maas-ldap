@@ -1,9 +1,7 @@
 package config
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -11,6 +9,7 @@ import (
 	"strings"
 
 	"maas-ldap/backends/maas"
+	"maas-ldap/db"
 
 	"github.com/joho/godotenv"
 )
@@ -21,7 +20,6 @@ var (
 	errMissingLDAPBaseDN       = errors.New("LDAP configuration is incomplete. Please set LDAP_BASE_DN.")
 	errMissingLDAPAllowedGroup = errors.New("LDAP configuration is incomplete. Please set LDAP_ALLOWED_GROUP.")
 	errBackendURLMissingHost   = errors.New("backend URL must include scheme and host")
-	errEmptyUsernameMapping    = errors.New("users.json contains an empty username")
 )
 
 // AppConfig contains the runtime objects needed by the HTTP handlers.
@@ -49,7 +47,7 @@ type BackendConfig struct {
 
 // UserMapping contains target app credentials mapped to an LDAP username.
 type UserMapping struct {
-	Password string `json:"maas_password"`
+	Password string
 }
 
 // Bootstrap loads and validates all configuration required to start the app.
@@ -64,7 +62,7 @@ func Bootstrap() AppConfig {
 	ldapConfig := loadLDAPConfig()
 	maasConfig := loadBackendConfig("MAAS_URL", maas.EndpointPaths)
 
-	users, err := loadUsers(appSettings.DBPath)
+	users, err := loadUsersFromDB(appSettings.DBPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -134,25 +132,22 @@ func loadBackendConfig(baseURLKey string, endpointPaths map[string]string) Backe
 	}
 }
 
-// loadUsers decodes the LDAP-username to target-password mapping file.
-func loadUsers(path string) (map[string]UserMapping, error) {
-	file, err := os.Open(path)
+// loadUsersFromDB loads LDAP-username to target-password mappings from SQLite.
+func loadUsersFromDB(path string) (map[string]UserMapping, error) {
+	database, err := db.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("open users file: %w", err)
+		return nil, err
 	}
-	defer file.Close()
+	defer database.Close()
 
+	passwords, err := maas.LoadUserMappings(database)
+	if err != nil {
+		return nil, err
+	}
 	users := map[string]UserMapping{}
-	if err := json.NewDecoder(file).Decode(&users); err != nil {
-		return nil, fmt.Errorf("decode users file: %w", err)
-	}
-
-	for username, user := range users {
-		if strings.TrimSpace(username) == "" {
-			return nil, errEmptyUsernameMapping
-		}
-		if strings.TrimSpace(user.Password) == "" {
-			return nil, fmt.Errorf("users.json mapping for %q has an empty password", username)
+	for username, password := range passwords {
+		users[username] = UserMapping{
+			Password: password,
 		}
 	}
 
