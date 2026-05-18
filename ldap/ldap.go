@@ -96,12 +96,28 @@ func LdapSearch(username string, config maasconfig.LDAPConfig) (bool, error) {
 		return false, fmt.Errorf("expected 1 user, got %d", len(res.Entries))
 	}
 
-	// Membership values are full DNs, so compare with the configured group DN.
+	// Membership values are full DNs. LDAP_ALLOWED_GROUP can be either a full DN
+	// or a short CN value.
 	for _, group := range res.Entries[0].GetAttributeValues("memberOf") {
-		if strings.EqualFold(group, config.ALLOWED_GROUP) {
+		if isAllowedGroup(group, config.ALLOWED_GROUP) {
 			return true, nil
 		}
 	}
 
 	return false, nil
+}
+
+func isAllowedGroup(memberOf string, allowedGroup string) bool {
+	if strings.EqualFold(memberOf, allowedGroup) {
+		return true
+	}
+
+	if strings.Contains(allowedGroup, "=") {
+		return false
+	}
+
+	return strings.HasPrefix(
+		strings.ToLower(memberOf),
+		"cn="+strings.ToLower(allowedGroup)+",",
+	)
 }

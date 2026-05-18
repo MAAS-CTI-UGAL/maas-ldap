@@ -21,8 +21,8 @@ MAAS backend.
    ```
 
 5. Requires exactly one user result.
-6. Requires one `memberOf` value to match `LDAP_ALLOWED_GROUP`,
-   case-insensitively.
+6. Requires one `memberOf` value to match `LDAP_ALLOWED_GROUP`.
+   `LDAP_ALLOWED_GROUP` can be a full group DN or a short group CN.
 7. Looks up the username in `users.json`.
 8. Replaces only the `password` form value with the mapped MAAS password.
 9. Proxies the request to `${MAAS_URL}/MAAS/accounts/login/`.
@@ -41,9 +41,13 @@ Required:
 LDAP_URL=ldap://example.internal:389
 LDAP_UPN_SUFFIX=example.internal
 LDAP_BASE_DN=DC=example,DC=internal
-LDAP_ALLOWED_GROUP=CN=Maas_Allowed,OU=Groups,DC=example,DC=internal
+LDAP_ALLOWED_GROUP=MaaS_Allowed
 MAAS_URL=https://maas.example.internal
 ```
+
+`LDAP_ALLOWED_GROUP` also accepts a full group DN, such as
+`CN=MaaS_Allowed,OU=Groups,DC=example,DC=internal`, when the deployment needs
+to distinguish between groups with the same CN in different OUs.
 
 Optional:
 
