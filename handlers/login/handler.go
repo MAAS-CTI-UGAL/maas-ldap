@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"maas-ldap/backends/maas"
 	"maas-ldap/config"
 	"maas-ldap/handlers/proxy"
 	maasldap "maas-ldap/ldap"
@@ -78,7 +79,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 	login.form.Set("password", user.Password)
 	proxyBody := []byte(login.form.Encode())
 
-	if err := proxy.ToTarget(w, r, appConfig, config.LoginMAAS, proxyBody); err != nil {
+	if err := proxy.ToTarget(w, r, appConfig, maas.LoginEndpoint, proxyBody); err != nil {
 		logging.Failure(login.username, "target_proxy", errTargetProxy)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return

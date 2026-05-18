@@ -10,6 +10,8 @@ import (
 	"os"
 	"strings"
 
+	"maas-ldap/backends/maas"
+
 	"github.com/joho/godotenv"
 )
 
@@ -60,7 +62,7 @@ func Bootstrap() AppConfig {
 
 	appSettings := loadAppSettings()
 	ldapConfig := loadLDAPConfig()
-	maasConfig := loadBackendConfig("MAAS_URL", BackendEndpointPaths)
+	maasConfig := loadBackendConfig("MAAS_URL", maas.EndpointPaths)
 
 	users, err := loadUsers(appSettings.UsersFile)
 	if err != nil {
@@ -157,7 +159,7 @@ func loadUsers(path string) (map[string]UserMapping, error) {
 	return users, nil
 }
 
-// buildBackendURL combines a configured backend origin with one app route.
+// buildBackendURL combines a configured backend origin with one backend route.
 func buildBackendURL(baseURL string, path string) (url.URL, error) {
 	parsedURL, err := url.Parse(baseURL)
 	if err != nil {
@@ -166,7 +168,7 @@ func buildBackendURL(baseURL string, path string) (url.URL, error) {
 	if parsedURL.Scheme == "" || parsedURL.Host == "" {
 		return url.URL{}, errBackendURLMissingHost
 	}
-	// Preserve any MAAS base path while avoiding duplicate slashes.
+	// Preserve any backend base path while avoiding duplicate slashes.
 	parsedURL.Path = strings.TrimRight(parsedURL.Path, "/") + path
 	return *parsedURL, nil
 }

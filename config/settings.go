@@ -5,6 +5,7 @@ import "os"
 const (
 	defaultListenAddress = ":42069"
 	defaultLogFile       = "/var/log/maas-ldap.log"
+	defaultUsersFile     = "users.json"
 	envLogFile           = "MAAS_LDAP_LOG_FILE"
 )
 
