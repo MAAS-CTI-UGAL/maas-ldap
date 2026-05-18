@@ -4,7 +4,7 @@ LDAP-gated login proxy for MAAS.
 
 The service exposes the MAAS login endpoint, validates submitted credentials
 against LDAP, checks group membership, rewrites the submitted password to the
-mapped MAAS password from `users.json`, and proxies the request to the real
+mapped MAAS password from SQLite, and proxies the request to the real
 MAAS backend.
 
 ## Login Flow
@@ -23,7 +23,7 @@ MAAS backend.
 5. Requires exactly one user result.
 6. Requires one `memberOf` value to match `LDAP_ALLOWED_GROUP`.
    `LDAP_ALLOWED_GROUP` can be a full group DN or a short group CN.
-7. Looks up the username in `users.json`.
+7. Looks up the username in `maas_user_mappings`.
 8. Replaces only the `password` form value with the mapped MAAS password.
 9. Proxies the request to `${MAAS_URL}/MAAS/accounts/login/`.
 10. Streams the MAAS response back to the client.
@@ -43,6 +43,7 @@ LDAP_UPN_SUFFIX=example.internal
 LDAP_BASE_DN=DC=example,DC=internal
 LDAP_ALLOWED_GROUP=MaaS_Allowed
 MAAS_URL=https://maas.example.internal
+DB_PATH=/var/lib/maas-ldap/maas-ldap.db
 ```
 
 `LDAP_ALLOWED_GROUP` also accepts a full group DN, such as
@@ -54,24 +55,27 @@ Optional:
 ```env
 PORT=8080
 LOG_PATH=/var/log/maas-ldap/maas-ldap.log
-DB_PATH=/var/lib/maas-ldap/maas-ldap.db
 ```
 
 If `LOG_PATH` is not set, logs are written only to stderr.
 
-## users.json
+## SQLite User Mappings
 
-`users.json` maps LDAP usernames to MAAS passwords:
+The app opens `DB_PATH`, runs embedded migrations, and loads
+`maas_user_mappings` into memory at startup. If the DB file does not exist,
+SQLite creates it. The parent directory must already exist and be writable.
 
-```json
-{
-  "some.username": {
-    "maas_password": "maas-password"
-  }
-}
+`maas_user_mappings` maps LDAP usernames to MAAS passwords:
+
+```sql
+INSERT INTO maas_user_mappings (username, maas_password)
+VALUES ('some.username', 'maas-password')
+ON CONFLICT(username) DO UPDATE SET
+    maas_password = excluded.maas_password;
 ```
 
-The username key must match the submitted LDAP username.
+The `username` value must match the submitted LDAP username. Password mappings
+are loaded once at startup; restart the service after updating the database.
 
 ## Run
 
