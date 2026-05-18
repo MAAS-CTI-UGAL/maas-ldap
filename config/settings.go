@@ -25,6 +25,7 @@ func loadAppSettings() AppSettings {
 	}
 }
 
+// envOrDefault lets operators override selected defaults without changing code.
 func envOrDefault(key, defaultValue string) string {
 	value := os.Getenv(key)
 	if value == "" {

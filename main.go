@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+	// Load configuration before wiring handlers so startup fails fast on bad env.
 	appConfig := config.Bootstrap()
 	logFile, err := logging.Configure(appConfig.App.LogFile)
 	if err != nil {
@@ -18,6 +19,7 @@ func main() {
 
 	loginHandler := handlers.NewLoginHandler(appConfig)
 
+	// The proxy only exposes the target login route.
 	http.HandleFunc(appConfig.App.LoginPath, loginHandler)
 
 	log.Printf("Server running on %s", appConfig.App.ListenAddress)

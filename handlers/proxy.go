@@ -12,11 +12,12 @@ import (
 	"maas-ldap/config"
 )
 
-var errMissingLoginEndpoint = errors.New("missing target login endpoint URL")
+var errMissingTargetEndpoint = errors.New("missing target endpoint URL")
 
 type proxyContextKey string
 
 const (
+	// Context values keep the shared ReverseProxy stateless between requests.
 	proxyTargetKey proxyContextKey = "proxy_target"
 	proxyBodyKey   proxyContextKey = "proxy_body"
 )
@@ -31,12 +32,14 @@ var targetProxy = &httputil.ReverseProxy{
 		target := proxyRequest.In.Context().Value(proxyTargetKey).(url.URL)
 		body := proxyRequest.In.Context().Value(proxyBodyKey).([]byte)
 
+		// Point the outbound request at MAAS while keeping the inbound query string.
 		proxyRequest.SetURL(&url.URL{
 			Scheme: target.Scheme,
 			Host:   target.Host,
 			Path:   target.Path,
 		})
 		proxyRequest.Out.URL.RawQuery = proxyRequest.In.URL.RawQuery
+		// Replay the validated form with the mapped MAAS password.
 		proxyRequest.Out.Method = http.MethodPost
 		proxyRequest.Out.Body = io.NopCloser(bytes.NewReader(body))
 		proxyRequest.Out.ContentLength = int64(len(body))
@@ -48,6 +51,7 @@ type proxyErrorRecorder struct {
 	err error
 }
 
+// record saves proxy errors so proxyToTarget can return them to the caller.
 func (r *proxyErrorRecorder) record(err error) {
 	r.err = err
 }
@@ -57,11 +61,12 @@ func proxyToTarget(
 	w http.ResponseWriter,
 	r *http.Request,
 	appConfig config.AppConfig,
+	endpointKey string,
 	body []byte,
 ) error {
-	target, ok := appConfig.MAAS.URLs[config.EndpointLogin]
+	target, ok := appConfig.MAAS.URLs[endpointKey]
 	if !ok {
-		return errMissingLoginEndpoint
+		return errMissingTargetEndpoint
 	}
 
 	ctx := context.WithValue(r.Context(), proxyTargetKey, target)

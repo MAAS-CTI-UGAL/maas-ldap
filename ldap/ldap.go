@@ -38,6 +38,7 @@ func LdapBind(username, password string, config maasconfig.LDAPConfig) error {
 	}
 	defer conn.Close()
 
+	// Active Directory commonly accepts username@domain for simple binds.
 	bindUser := fmt.Sprintf("%s@%s", username, config.UPN_SUFFIX)
 
 	if err := conn.Bind(bindUser, password); err != nil {
@@ -68,6 +69,7 @@ func LdapSearch(username string, config maasconfig.LDAPConfig) (bool, error) {
 	}
 	defer conn.Close()
 
+	// Escape the username before it is embedded in the LDAP filter.
 	filter := fmt.Sprintf(
 		"(&(objectClass=user)(sAMAccountName=%s))",
 		ldap.EscapeFilter(username),
@@ -94,6 +96,7 @@ func LdapSearch(username string, config maasconfig.LDAPConfig) (bool, error) {
 		return false, fmt.Errorf("expected 1 user, got %d", len(res.Entries))
 	}
 
+	// Membership values are full DNs, so compare with the configured group DN.
 	for _, group := range res.Entries[0].GetAttributeValues("memberOf") {
 		if strings.EqualFold(group, config.ALLOWED_GROUP) {
 			return true, nil

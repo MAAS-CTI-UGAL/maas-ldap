@@ -75,7 +75,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 	login.form.Set("password", user.Password)
 	proxyBody := []byte(login.form.Encode())
 
-	if err := proxyToTarget(w, r, appConfig, proxyBody); err != nil {
+	if err := proxyToTarget(w, r, appConfig, "login", proxyBody); err != nil {
 		logging.Failure(login.username, "target_proxy", errTargetProxy)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return

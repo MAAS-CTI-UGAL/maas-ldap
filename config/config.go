@@ -18,8 +18,6 @@ var (
 	errMissingLDAPUPNSuffix    = errors.New("LDAP configuration is incomplete. Please set LDAP_UPN_SUFFIX.")
 	errMissingLDAPBaseDN       = errors.New("LDAP configuration is incomplete. Please set LDAP_BASE_DN.")
 	errMissingLDAPAllowedGroup = errors.New("LDAP configuration is incomplete. Please set LDAP_ALLOWED_GROUP.")
-	errMissingMAASURL          = errors.New("MAAS configuration is incomplete. Please set MAAS_URL.")
-	errMAASURLMissingHost      = errors.New("MAAS_URL must include scheme and host")
 	errBackendURLMissingHost   = errors.New("backend URL must include scheme and host")
 	errEmptyUsernameMapping    = errors.New("users.json contains an empty username")
 )
@@ -29,7 +27,7 @@ type AppConfig struct {
 	App        AppSettings
 	LDAP       LDAPConfig
 	MAAS       BackendConfig
-	Users      map[string]User
+	Users      map[string]UserMapping
 	HTTPClient *http.Client
 }
 
@@ -47,8 +45,8 @@ type BackendConfig struct {
 	URLs    map[string]url.URL
 }
 
-// User contains target app credentials mapped to an LDAP username.
-type User struct {
+// UserMapping contains target app credentials mapped to an LDAP username.
+type UserMapping struct {
 	Password string `json:"maas_password"`
 }
 
@@ -62,7 +60,8 @@ func Bootstrap() AppConfig {
 
 	appSettings := loadAppSettings()
 	ldapConfig := loadLDAPConfig()
-	maasConfig := loadMAASConfig(appSettings)
+	//Remove this if there's no need for MAAS
+	maasConfig := loadBackendConfig("MAAS_URL")
 
 	users, err := loadUsers(appSettings.UsersFile)
 	if err != nil {
@@ -109,37 +108,40 @@ func loadLDAPConfig() LDAPConfig {
 	}
 }
 
-func loadMAASConfig(appSettings AppSettings) BackendConfig {
-	maasURL := os.Getenv("MAAS_URL")
-	if maasURL == "" {
-		log.Fatal(errMissingMAASURL)
+func loadBackendConfig(baseURLKey string) BackendConfig {
+	baseURL := os.Getenv(baseURLKey)
+	if baseURL == "" {
+		log.Fatalf("backend configuration is incomplete. Please set %s.", baseURLKey)
 	}
 
-	loginURL, err := buildBackendURL(maasURL, appSettings.LoginPath)
-	if err != nil {
-		if errors.Is(err, errBackendURLMissingHost) {
-			log.Fatal(errMAASURLMissingHost)
+	urls := map[string]url.URL{}
+	for endpointKey, endpointPath := range BackendEndpointPaths {
+		endpointURL, err := buildBackendURL(baseURL, endpointPath)
+		if err != nil {
+			if errors.Is(err, errBackendURLMissingHost) {
+				log.Fatalf("%s must include scheme and host", baseURLKey)
+			}
+			log.Fatalf("%s is invalid: %v", baseURLKey, err)
 		}
-		log.Fatalf("MAAS_URL is invalid: %v", err)
+		urls[endpointKey] = endpointURL
 	}
 
+	// Store endpoint URLs by key so handlers do not rebuild target URLs per request.
 	return BackendConfig{
-		BaseURL: maasURL,
-		URLs: map[string]url.URL{
-			EndpointLogin: loginURL,
-		},
+		BaseURL: baseURL,
+		URLs:    urls,
 	}
 }
 
 // loadUsers decodes the LDAP-username to target-password mapping file.
-func loadUsers(path string) (map[string]User, error) {
+func loadUsers(path string) (map[string]UserMapping, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("open users file: %w", err)
 	}
 	defer file.Close()
 
-	users := map[string]User{}
+	users := map[string]UserMapping{}
 	if err := json.NewDecoder(file).Decode(&users); err != nil {
 		return nil, fmt.Errorf("decode users file: %w", err)
 	}
@@ -156,6 +158,7 @@ func loadUsers(path string) (map[string]User, error) {
 	return users, nil
 }
 
+// buildBackendURL combines a configured backend origin with one app route.
 func buildBackendURL(baseURL string, path string) (url.URL, error) {
 	parsedURL, err := url.Parse(baseURL)
 	if err != nil {
@@ -164,6 +167,7 @@ func buildBackendURL(baseURL string, path string) (url.URL, error) {
 	if parsedURL.Scheme == "" || parsedURL.Host == "" {
 		return url.URL{}, errBackendURLMissingHost
 	}
+	// Preserve any MAAS base path while avoiding duplicate slashes.
 	parsedURL.Path = strings.TrimRight(parsedURL.Path, "/") + path
 	return *parsedURL, nil
 }

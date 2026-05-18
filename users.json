@@ -1,5 +1,8 @@
 {
-  "test": {
-    "maas_password": "test123"
+  "student1": {
+    "maas_password": "parola1"
+  },
+  "tb171": {
+    "maas_password": "Muxime64"
   }
 }
