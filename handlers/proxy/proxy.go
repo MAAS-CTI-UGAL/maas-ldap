@@ -12,15 +12,13 @@ import (
 	"maas-ldap/config"
 )
 
-var errMissingTargetEndpoint = errors.New("missing target endpoint URL")
-
-type proxyContextKey string
-
 const (
 	// Context values keep the shared ReverseProxy stateless between requests.
 	proxyTargetKey proxyContextKey = "proxy_target"
 	proxyBodyKey   proxyContextKey = "proxy_body"
 )
+
+var errMissingTargetEndpoint = errors.New("missing target endpoint URL")
 
 var targetProxy = &httputil.ReverseProxy{
 	ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
@@ -45,6 +43,8 @@ var targetProxy = &httputil.ReverseProxy{
 		proxyRequest.Out.ContentLength = int64(len(body))
 	},
 }
+
+type proxyContextKey string
 
 type proxyErrorRecorder struct {
 	http.ResponseWriter
