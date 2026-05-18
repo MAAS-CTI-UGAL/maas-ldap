@@ -1,27 +1,54 @@
 package config
 
-import "os"
+import (
+	"errors"
+	"log"
+	"os"
+	"strings"
+)
 
 const (
 	defaultListenAddress = ":42069"
-	defaultLogFile       = "/var/log/maas-ldap.log"
-	defaultUsersFile     = "users.json"
-	envLogFile           = "MAAS_LDAP_LOG_FILE"
+	envDBPath            = "DB_PATH"
+	envLogPath           = "LOG_PATH"
+	envPort              = "PORT"
 )
+
+var errMissingDBPath = errors.New("application configuration is incomplete. Please set DB_PATH.")
 
 // AppSettings contains application-wide routes and file paths.
 type AppSettings struct {
 	ListenAddress string
-	LogFile       string
-	UsersFile     string
+	LogFilePath   string
+	DBPath        string
 }
 
 func loadAppSettings() AppSettings {
-	return AppSettings{
-		ListenAddress: defaultListenAddress,
-		LogFile:       envOrDefault(envLogFile, defaultLogFile),
-		UsersFile:     defaultUsersFile,
+	listenAddress := loadListenAddress()
+
+	logFilePath := envOrDefault(envLogPath, "")
+
+	dbPath := os.Getenv(envDBPath)
+	if dbPath == "" {
+		log.Fatal(errMissingDBPath)
 	}
+
+	return AppSettings{
+		ListenAddress: listenAddress,
+		LogFilePath:   logFilePath,
+		DBPath:        dbPath,
+	}
+}
+
+func loadListenAddress() string {
+	port := os.Getenv(envPort)
+	if port == "" {
+		return defaultListenAddress
+	}
+	if port[0] == ':' || strings.Contains(port, ":") {
+		return port
+	}
+	return ":" + port
 }
 
 // envOrDefault lets operators override selected defaults without changing code.

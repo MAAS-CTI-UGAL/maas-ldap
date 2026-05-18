@@ -64,7 +64,7 @@ func Bootstrap() AppConfig {
 	ldapConfig := loadLDAPConfig()
 	maasConfig := loadBackendConfig("MAAS_URL", maas.EndpointPaths)
 
-	users, err := loadUsers(appSettings.UsersFile)
+	users, err := loadUsers(appSettings.DBPath)
 	if err != nil {
 		log.Fatal(err)
 	}

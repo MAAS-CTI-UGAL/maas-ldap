@@ -52,11 +52,12 @@ to distinguish between groups with the same CN in different OUs.
 Optional:
 
 ```env
-MAAS_LDAP_LOG_FILE=/var/log/maas-ldap.log
+PORT=8080
+LOG_PATH=/var/log/maas-ldap/maas-ldap.log
+DB_PATH=/var/lib/maas-ldap/maas-ldap.db
 ```
 
-If `MAAS_LDAP_LOG_FILE` is not set, logs are written to
-`/var/log/maas-ldap.log`.
+If `LOG_PATH` is not set, logs are written only to stderr.
 
 ## users.json
 
@@ -92,18 +93,13 @@ By default, the service listens on:
 
 ## Logging
 
-The app writes logs to both stderr and the configured log file.
+The app always writes logs to stderr. If `LOG_PATH` is set, the same log lines
+are also appended to that file.
 
 When running under `systemd`, stderr is captured by the journal:
 
 ```bash
 journalctl -u maas-ldap
-```
-
-The same log lines are also written to:
-
-```text
-/var/log/maas-ldap.log
 ```
 
 Login failures use this format:
@@ -125,16 +121,18 @@ target_proxy
 
 ## Service User Notes
 
-If the binary runs as a dedicated `maas-ldap` user, make sure that user can
-append to the configured log file. One option is to create the log file with a
-group that the service user belongs to, then give the group write permission.
+If `LOG_PATH` is set and the binary runs as a dedicated `maas-ldap` user, make
+sure that user can append to the configured log file. One option is to create
+the log file with a group that the service user belongs to, then give the group
+write permission.
 
 Example:
 
 ```bash
-sudo touch /var/log/maas-ldap.log
-sudo chown root:syslog /var/log/maas-ldap.log
-sudo chmod 0660 /var/log/maas-ldap.log
+sudo mkdir -p /var/log/maas-ldap
+sudo touch /var/log/maas-ldap/maas-ldap.log
+sudo chown root:syslog /var/log/maas-ldap/maas-ldap.log
+sudo chmod 0660 /var/log/maas-ldap/maas-ldap.log
 sudo usermod -aG syslog maas-ldap
 ```
 
