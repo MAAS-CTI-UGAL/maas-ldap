@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
 	"maas-ldap/backends/maas"
@@ -78,10 +77,10 @@ func Bootstrap() AppConfig {
 
 // loadLDAPConfig loads LDAP configuration from environment variables.
 func loadLDAPConfig() LDAPConfig {
-	ldapURL := os.Getenv("LDAP_URL")
-	ldapUPNSuffix := os.Getenv("LDAP_UPN_SUFFIX")
-	ldapBASEDN := os.Getenv("LDAP_BASE_DN")
-	ldapALLOWEDGROUP := os.Getenv("LDAP_ALLOWED_GROUP")
+	ldapURL := getEnv("LDAP_URL")
+	ldapUPNSuffix := getEnv("LDAP_UPN_SUFFIX")
+	ldapBASEDN := getEnv("LDAP_BASE_DN")
+	ldapALLOWEDGROUP := getEnv("LDAP_ALLOWED_GROUP")
 
 	if ldapURL == "" {
 		log.Fatal(errMissingLDAPURL)
@@ -108,7 +107,7 @@ func loadLDAPConfig() LDAPConfig {
 }
 
 func loadBackendConfig(baseURLKey string, endpointPaths map[string]string) BackendConfig {
-	baseURL := os.Getenv(baseURLKey)
+	baseURL := getEnv(baseURLKey)
 	if baseURL == "" {
 		log.Fatalf("backend configuration is incomplete. Please set %s.", baseURLKey)
 	}

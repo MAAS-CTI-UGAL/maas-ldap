@@ -3,7 +3,6 @@ package config
 import (
 	"errors"
 	"log"
-	"os"
 	"strings"
 )
 
@@ -14,7 +13,7 @@ const (
 	envPort              = "PORT"
 )
 
-var errMissingDBPath = errors.New("application configuration is incomplete. Please set DB_PATH.")
+var errMissingDBPath = errors.New("application configuration is incomplete. Please set DB_PATH to the SQLite database file path.")
 
 // AppSettings contains application-wide routes and file paths.
 type AppSettings struct {
@@ -29,9 +28,9 @@ func loadAppSettings() AppSettings {
 	// If envLogPath is not set, Configure will log to stderr only.
 	logFilePath := envOrDefault(envLogPath, "")
 
-	dbPath := os.Getenv(envDBPath)
-	if dbPath == "" {
-		log.Fatal(errMissingDBPath)
+	dbPath, err := loadDBPath()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	return AppSettings{
@@ -41,22 +40,18 @@ func loadAppSettings() AppSettings {
 	}
 }
 
-func loadListenAddress() string {
-	port := os.Getenv(envPort)
-	if port == "" {
-		return defaultListenAddress
+func loadDBPath() (string, error) {
+	dbPath := getEnv(envDBPath)
+	if dbPath == "" {
+		return "", errMissingDBPath
 	}
+	return dbPath, nil
+}
+
+func loadListenAddress() string {
+	port := envOrDefault(envPort, defaultListenAddress)
 	if port[0] == ':' || strings.Contains(port, ":") {
 		return port
 	}
 	return ":" + port
-}
-
-// envOrDefault lets operators override selected defaults without changing code.
-func envOrDefault(key, defaultValue string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		return defaultValue
-	}
-	return value
 }
