@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	defaultListenAddress = ":42069"
+	defaultListenAddress = ":9090"
 	envDBPath            = "DB_PATH"
 	envLogPath           = "LOG_PATH"
 	envPort              = "PORT"
@@ -26,6 +26,7 @@ type AppSettings struct {
 func loadAppSettings() AppSettings {
 	listenAddress := loadListenAddress()
 
+	// If envLogPath is not set, Configure will log to stderr only.
 	logFilePath := envOrDefault(envLogPath, "")
 
 	dbPath := os.Getenv(envDBPath)

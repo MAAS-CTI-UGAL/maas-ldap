@@ -92,7 +92,7 @@ go build -o maas-ldap .
 By default, the service listens on:
 
 ```text
-:42069
+:9090
 ```
 
 ## Logging
