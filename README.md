@@ -78,10 +78,11 @@ Optional:
 
 ```env
 PORT=8080
-LOG_PATH=/var/log/maas-ldap/maas-ldap.log
 ```
 
-If `LOG_PATH` is not set, logs are written only to stderr.
+If `LOG_PATH` is not set, logs are written only to stderr. This is the
+recommended production setup for `systemd` services because stderr is captured
+by `journald`.
 
 ## SQLite User Mappings
 
@@ -123,14 +124,18 @@ By default, the service listens on:
 
 ## Logging
 
-The app always writes logs to stderr. If `LOG_PATH` is set, the same log lines
-are also appended to that file.
+The app always writes logs to stderr. In production under `systemd`, leave
+`LOG_PATH` unset and read logs from `journald`.
 
 When running under `systemd`, stderr is captured by the journal:
 
 ```bash
 journalctl -u maas-ldap
+journalctl -u maas-ldap -f
 ```
+
+For local development or deployments that deliberately want a simple file log,
+set `LOG_PATH`. When set, the same log lines are also appended to that file.
 
 HTTP requests emit one access log line:
 
@@ -140,20 +145,19 @@ POST /MAAS/accounts/login/ -> 204 (12.345ms)
 
 ## Service User Notes
 
-If `LOG_PATH` is set and the binary runs as a dedicated `maas-ldap` user, make
-sure that user can append to the configured log file. One option is to create
-the log file with a group that the service user belongs to, then give the group
-write permission.
+When running the binary as a dedicated `maas-ldap` user, create the persistent
+database directory before starting the service and make it writable by that
+user.
 
 Example:
 
 ```bash
-sudo mkdir -p /var/log/maas-ldap
-sudo touch /var/log/maas-ldap/maas-ldap.log
-sudo chown root:syslog /var/log/maas-ldap/maas-ldap.log
-sudo chmod 0660 /var/log/maas-ldap/maas-ldap.log
-sudo usermod -aG syslog maas-ldap
+sudo install -d -o maas-ldap -g maas-ldap -m 750 /var/lib/maas-ldap
 ```
+
+If `LOG_PATH` is deliberately enabled, also create its parent directory and make
+it writable by the service user. Production `systemd` deployments should
+normally omit `LOG_PATH` and use `journalctl` instead.
 
 ## Check
 

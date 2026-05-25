@@ -14,7 +14,6 @@ MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
 DB_PATH=/var/lib/maas-ldap/maas-ldap.db
 
 PORT=8080
-LOG_PATH=/var/log/maas-ldap/maas-ldap.log
 ```
 
 ## MAAS CTI Example
@@ -40,8 +39,11 @@ Production should normally use persistent system paths, for example:
 
 ```env
 DB_PATH=/var/lib/maas-ldap/maas-ldap.db
-LOG_PATH=/var/log/maas-ldap/maas-ldap.log
 ```
+
+When running as a `systemd` service, omit `LOG_PATH` in production so logs go
+to stderr and are captured by `journald`. Use `journalctl -u maas-ldap` or
+`journalctl -u maas-ldap -f` to inspect them.
 
 ## Required Values
 
@@ -149,12 +151,15 @@ PORT=127.0.0.1:8080
 
 `LOG_PATH`
 
-Path to a log file. If unset, logs are written only to stderr.
+Optional path to a log file for local development or deployments that
+deliberately want file logging. If unset, logs are written only to stderr.
+For production `systemd` services, prefer leaving this unset and reading logs
+from the journal.
 
 Example:
 
 ```env
-LOG_PATH=/var/log/maas-ldap/maas-ldap.log
+LOG_PATH=./maas-ldap.log
 ```
 
 When set, logs are written to both stderr and the configured file. The parent
