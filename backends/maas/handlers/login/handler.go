@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"net/url"
 
-	"maas-ldap/backends/maas"
 	"maas-ldap/config"
-	"maas-ldap/handlers/proxy"
 	maasldap "maas-ldap/ldap"
 	"maas-ldap/logging"
+	"maas-ldap/proxy"
+	"maas-ldap/users"
 )
 
 type loginRequest struct {
@@ -28,14 +28,14 @@ var (
 )
 
 // NewHandler creates the login endpoint handler from bootstrap config.
-func NewHandler(appConfig config.AppConfig) http.HandlerFunc {
+func NewHandler(appConfig config.AppConfig, users *users.Store, target url.URL, allowedGroup string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handleLogin(w, r, appConfig)
+		handleLogin(w, r, appConfig, users, target, allowedGroup)
 	}
 }
 
 // handleLogin gates target app login behind form validation and LDAP authorization.
-func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppConfig) {
+func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppConfig, users *users.Store, target url.URL, allowedGroup string) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusBadRequest)
 		return
@@ -54,7 +54,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 		return
 	}
 
-	allowed, err := maasldap.LdapSearch(login.username, appConfig.LDAP)
+	allowed, err := maasldap.LdapSearch(login.username, appConfig.LDAP, allowedGroup)
 	if err != nil {
 		logging.Failure(login.username, "ldap_search", errLDAPSearch)
 		http.Error(w, "Bad request", http.StatusBadRequest)
@@ -67,20 +67,20 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 		return
 	}
 
-	user, ok := appConfig.Users[login.username]
+	mapping, ok := users.Get(login.username)
 
 	if !ok {
-		logging.Failure(login.username, "password_mapping", errPasswordMap)
+		logging.Failure(login.username, "username_mapping", errPasswordMap)
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
 	// Only the password is rewritten; all other form fields are preserved.
-	login.form.Set("password", user.Password)
+	login.form.Set("password", mapping.Secret)
 	proxyBody := []byte(login.form.Encode())
 
-	if err := proxy.ToTarget(w, r, appConfig.MAAS, maas.LoginEndpoint, proxyBody); err != nil {
-		logging.Failure(login.username, "target_proxy", errTargetProxy)
+	if err := proxy.ToTarget(w, r, target, proxyBody); err != nil {
+		logging.Failure(login.username, "reverse_proxy", errTargetProxy)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}

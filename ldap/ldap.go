@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	maasconfig "maas-ldap/config"
+	config "maas-ldap/config"
 
 	"github.com/go-ldap/ldap/v3"
 )
@@ -18,7 +18,7 @@ var (
 )
 
 // LdapBind verifies the supplied username and password against LDAP.
-func LdapBind(username, password string, config maasconfig.LDAPConfig) error {
+func LdapBind(username, password string, config config.LDAPConfig) error {
 
 	if config.URL == "" {
 		return errMissingLDAPURL
@@ -49,7 +49,7 @@ func LdapBind(username, password string, config maasconfig.LDAPConfig) error {
 }
 
 // LdapSearch finds the LDAP user and reports whether it belongs to the allowed group.
-func LdapSearch(username string, config maasconfig.LDAPConfig) (bool, error) {
+func LdapSearch(username string, config config.LDAPConfig, allowedGroup string) (bool, error) {
 
 	if config.URL == "" {
 		return false, errMissingLDAPURL
@@ -96,10 +96,10 @@ func LdapSearch(username string, config maasconfig.LDAPConfig) (bool, error) {
 		return false, fmt.Errorf("expected 1 user, got %d", len(res.Entries))
 	}
 
-	// Membership values are full DNs. LDAP_ALLOWED_GROUP can be either a full DN
+	// Membership values are full DNs. The allowed group can be either a full DN
 	// or a short CN value.
 	for _, group := range res.Entries[0].GetAttributeValues("memberOf") {
-		if isAllowedGroup(group, config.ALLOWED_GROUP) {
+		if isAllowedGroup(group, allowedGroup) {
 			return true, nil
 		}
 	}

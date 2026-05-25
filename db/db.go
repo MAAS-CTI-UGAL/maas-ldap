@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	"io/fs"
+	"log"
 	"path"
 	"sort"
 
@@ -31,6 +33,8 @@ func Open(dbPath string) (*sql.DB, error) {
 }
 
 func runMigrations(database *sql.DB) error {
+	log.Printf("database migration check starting")
+
 	// Ensure the database can record which migrations have already run.
 	if _, err := database.Exec(`
 		CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -46,60 +50,82 @@ func runMigrations(database *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("read migrations: %w", err)
 	}
+	log.Printf("database migration files found: %d", len(entries))
 
 	// Apply migrations in filename order.
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].Name() < entries[j].Name()
 	})
 
+	appliedCount := 0
+	skippedCount := 0
 	for _, entry := range entries {
-		// Migration entries must be SQL files, not directories.
-		if entry.IsDir() {
-			return fmt.Errorf("migration entry %s is a directory", entry.Name())
-		}
-
-		version := entry.Name()
-
-		// Skip migrations already recorded in schema_migrations.
-		applied, err := migrationApplied(database, version)
+		applied, err := runMigration(database, entry)
 		if err != nil {
 			return err
 		}
 		if applied {
-			continue
-		}
-
-		// Load the SQL for this migration from the embedded filesystem.
-		migration, err := migrations.ReadFile(path.Join(migrationsPath, version))
-		if err != nil {
-			return fmt.Errorf("read migration %s: %w", version, err)
-		}
-
-		// Run each migration and its tracking insert atomically.
-		tx, err := database.Begin()
-		if err != nil {
-			return fmt.Errorf("begin migration %s: %w", version, err)
-		}
-
-		// Apply the migration SQL.
-		if _, err := tx.Exec(string(migration)); err != nil {
-			_ = tx.Rollback()
-			return fmt.Errorf("apply migration %s: %w", version, err)
-		}
-
-		// Record the migration version only after the SQL succeeds.
-		if _, err := tx.Exec("INSERT INTO schema_migrations (version) VALUES (?)", version); err != nil {
-			_ = tx.Rollback()
-			return fmt.Errorf("record migration %s: %w", version, err)
-		}
-
-		// Commit both the schema/data changes and the migration record.
-		if err := tx.Commit(); err != nil {
-			return fmt.Errorf("commit migration %s: %w", version, err)
+			appliedCount++
+		} else {
+			skippedCount++
 		}
 	}
 
+	log.Printf("database migration check complete: applied=%d skipped=%d", appliedCount, skippedCount)
 	return nil
+}
+
+func runMigration(database *sql.DB, entry fs.DirEntry) (bool, error) {
+	// Migration entries must be SQL files, not directories.
+	if entry.IsDir() {
+		return false, fmt.Errorf("migration entry %s is a directory", entry.Name())
+	}
+
+	version := entry.Name()
+
+	// Skip migrations already recorded in schema_migrations.
+	applied, err := migrationApplied(database, version)
+	if err != nil {
+		return false, err
+	}
+	if applied {
+		log.Printf("database migration already applied: %s", version)
+		return false, nil
+	}
+
+	log.Printf("database migration applying: %s", version)
+
+	// Load the SQL for this migration from the embedded filesystem.
+	migration, err := migrations.ReadFile(path.Join(migrationsPath, version))
+	if err != nil {
+		return false, fmt.Errorf("read migration %s: %w", version, err)
+	}
+
+	// Run each migration and its tracking insert atomically.
+	tx, err := database.Begin()
+	if err != nil {
+		return false, fmt.Errorf("begin migration %s: %w", version, err)
+	}
+
+	// Apply the migration SQL.
+	if _, err := tx.Exec(string(migration)); err != nil {
+		_ = tx.Rollback()
+		return false, fmt.Errorf("apply migration %s: %w", version, err)
+	}
+
+	// Record the migration version only after the SQL succeeds.
+	if _, err := tx.Exec("INSERT INTO schema_migrations (version) VALUES (?)", version); err != nil {
+		_ = tx.Rollback()
+		return false, fmt.Errorf("record migration %s: %w", version, err)
+	}
+
+	// Commit both the schema/data changes and the migration record.
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("commit migration %s: %w", version, err)
+	}
+
+	log.Printf("database migration applied: %s", version)
+	return true, nil
 }
 
 func migrationApplied(database *sql.DB, version string) (bool, error) {

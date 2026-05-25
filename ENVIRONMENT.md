@@ -9,8 +9,8 @@ loaded, or if any required value is missing, startup stops with a fatal error.
 LDAP_URL=ldap://ldap.example.internal:389
 LDAP_UPN_SUFFIX=example.internal
 LDAP_BASE_DN=DC=example,DC=internal
-LDAP_ALLOWED_GROUP=MaaS_Allowed
 MAAS_URL=https://maas.example.internal
+MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
 DB_PATH=/var/lib/maas-ldap/maas-ldap.db
 
 PORT=8080
@@ -18,6 +18,10 @@ LOG_PATH=/var/log/maas-ldap/maas-ldap.log
 ```
 
 ## Required Values
+
+The global LDAP values configure how the app connects to LDAP and searches for
+users. Backend-specific LDAP values configure which LDAP group authorizes access
+to each backend.
 
 `LDAP_URL`
 
@@ -54,19 +58,22 @@ Example:
 LDAP_BASE_DN=DC=example,DC=internal
 ```
 
-`LDAP_ALLOWED_GROUP`
+`<BACKEND_NAME>_LDAP_ALLOWED_GROUP`
 
-LDAP group required for access. This can be either a short group CN or a full
-group DN.
+LDAP group required for backend access. Each backend owns its own allowed group
+using this naming pattern. For the current MAAS backend, the required variable
+is `MAAS_LDAP_ALLOWED_GROUP`.
 
 Examples:
 
 ```env
-LDAP_ALLOWED_GROUP=MaaS_Allowed
-LDAP_ALLOWED_GROUP=CN=MaaS_Allowed,OU=Groups,DC=example,DC=internal
+MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
+MAAS_LDAP_ALLOWED_GROUP=CN=MaaS_Allowed,OU=Groups,DC=example,DC=internal
+GRAFANA_LDAP_ALLOWED_GROUP=Grafana_Allowed
 ```
 
-Use a full DN when different OUs may contain groups with the same CN.
+The value can be either a short group CN or a full group DN. Use a full DN when
+different OUs may contain groups with the same CN.
 
 `MAAS_URL`
 

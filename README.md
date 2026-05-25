@@ -2,10 +2,22 @@
 
 LDAP-gated login proxy for MAAS.
 
-The service exposes the MAAS login endpoint, validates submitted credentials
-against LDAP, checks group membership, rewrites the submitted password to the
-mapped MAAS password from SQLite, and proxies the request to the real
-MAAS backend.
+The current implementation supports MAAS. The service exposes the MAAS login
+endpoint, validates submitted credentials against LDAP, checks group
+membership, rewrites the submitted password to the mapped MAAS password from
+SQLite, and proxies the request to the real MAAS backend.
+
+The project is structured so additional backends can be added under
+`backends/`.
+
+## Architecture
+
+Global configuration owns shared LDAP connection and search settings. Each
+backend owns its paths, target URL configuration, allowed LDAP group, routes,
+and user mapping behavior.
+
+Shared backend helpers build full target URLs from a backend base URL and the
+paths defined by that backend.
 
 ## Login Flow
 
@@ -21,8 +33,8 @@ MAAS backend.
    ```
 
 5. Requires exactly one user result.
-6. Requires one `memberOf` value to match `LDAP_ALLOWED_GROUP`.
-   `LDAP_ALLOWED_GROUP` can be a full group DN or a short group CN.
+6. Requires one `memberOf` value to match `MAAS_LDAP_ALLOWED_GROUP`.
+   `MAAS_LDAP_ALLOWED_GROUP` can be a full group DN or a short group CN.
 7. Looks up the username in `maas_user_mappings`.
 8. Replaces only the `password` form value with the mapped MAAS password.
 9. Proxies the request to `${MAAS_URL}/MAAS/accounts/login/`.
@@ -41,14 +53,25 @@ Required:
 LDAP_URL=ldap://example.internal:389
 LDAP_UPN_SUFFIX=example.internal
 LDAP_BASE_DN=DC=example,DC=internal
-LDAP_ALLOWED_GROUP=MaaS_Allowed
 MAAS_URL=https://maas.example.internal
+MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
 DB_PATH=/var/lib/maas-ldap/maas-ldap.db
 ```
 
-`LDAP_ALLOWED_GROUP` also accepts a full group DN, such as
-`CN=MaaS_Allowed,OU=Groups,DC=example,DC=internal`, when the deployment needs
-to distinguish between groups with the same CN in different OUs.
+`LDAP_URL`, `LDAP_UPN_SUFFIX`, and `LDAP_BASE_DN` configure the shared LDAP
+server and user search. Backend-specific authorization groups use the
+`<BACKEND_NAME>_LDAP_ALLOWED_GROUP` pattern; the current MAAS backend requires
+`MAAS_LDAP_ALLOWED_GROUP`.
+
+Allowed groups can be a short CN or a full DN. For example:
+
+```env
+MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
+MAAS_LDAP_ALLOWED_GROUP=CN=MaaS_Allowed,OU=Groups,DC=example,DC=internal
+```
+
+Use a full DN when the deployment needs to distinguish between groups with the
+same CN in different OUs.
 
 Optional:
 
