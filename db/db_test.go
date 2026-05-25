@@ -29,7 +29,7 @@ func TestOpenCreatesDatabaseAndRunsMigrations(t *testing.T) {
 
 	wantPasswords := map[string]string{
 		"student1": "parola1",
-		"tb171":    "Muxime64",
+		"tb171":    "parola1234",
 	}
 
 	for username, wantPassword := range wantPasswords {
