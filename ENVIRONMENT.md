@@ -17,6 +17,32 @@ PORT=8080
 LOG_PATH=/var/log/maas-ldap/maas-ldap.log
 ```
 
+## MAAS CTI Example
+
+For the CTI MAAS deployment, these values are known:
+
+```env
+LDAP_URL=ldap://10.13.11.1:389
+LDAP_UPN_SUFFIX=cti.ugal.ro
+LDAP_BASE_DN=DC=CTI,DC=UGAL,DC=RO
+MAAS_URL=http://10.13.201.10:5240
+MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
+```
+
+Local development can use repository-local runtime files:
+
+```env
+DB_PATH=./maas-ldap.db
+LOG_PATH=./maas-ldap.log
+```
+
+Production should normally use persistent system paths, for example:
+
+```env
+DB_PATH=/var/lib/maas-ldap/maas-ldap.db
+LOG_PATH=/var/log/maas-ldap/maas-ldap.log
+```
+
 ## Required Values
 
 The global LDAP values configure how the app connects to LDAP and searches for
