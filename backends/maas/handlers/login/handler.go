@@ -37,7 +37,7 @@ func NewHandler(appConfig config.AppConfig, users *users.Store, target url.URL, 
 
 // handleLogin gates target app login behind form validation and LDAP authorization.
 func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppConfig, users *users.Store, target url.URL, allowedGroup string) {
-	log.Printf("maas login handler called method=%s path=%s", r.Method, r.URL.Path)
+	log.Printf("maas login handler called url=%s", requestURL(r))
 
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusBadRequest)
@@ -88,6 +88,18 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+}
+
+func requestURL(r *http.Request) string {
+	scheme := r.Header.Get("X-Forwarded-Proto")
+	if scheme == "" {
+		scheme = "http"
+	}
+	host := r.Host
+	if forwardedHost := r.Header.Get("X-Forwarded-Host"); forwardedHost != "" {
+		host = forwardedHost
+	}
+	return scheme + "://" + host + r.URL.RequestURI()
 }
 
 func redactedForm(form url.Values) url.Values {
