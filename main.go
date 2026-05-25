@@ -5,6 +5,7 @@ import (
 	"maas-ldap/backends/maas"
 	"maas-ldap/config"
 	"maas-ldap/db"
+	"maas-ldap/global_handlers"
 	"maas-ldap/logging"
 	"maas-ldap/users"
 	"net/http"
@@ -49,6 +50,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	maas.AddRoutes(mux, appConfig, maasBackend)
+	global_handlers.AddRoutes(mux)
 
 	log.Printf("Server running on %s", appConfig.Settings.ListenAddress)
 	err = http.ListenAndServe(appConfig.Settings.ListenAddress, mux)
