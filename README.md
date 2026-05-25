@@ -132,22 +132,10 @@ When running under `systemd`, stderr is captured by the journal:
 journalctl -u maas-ldap
 ```
 
-MAAS login requests emit one summary line per handler call:
+HTTP requests emit one access log line:
 
 ```text
-maas_login method=POST url="https://maas.example.internal/MAAS/accounts/login/" target="http://10.13.201.10:5240/MAAS/accounts/login/" remote_addr="127.0.0.1:12345" content_type="application/x-www-form-urlencoded; charset=UTF-8" username="some.username" body="password=%3Credacted%3E&username=some.username" outcome=proxied failed_step= error="" status=204
-```
-
-The password value is redacted in logs. Known failure steps:
-
-```text
-method_check
-decode_request
-ldap_bind
-ldap_search
-ldap_group_check
-username_mapping
-reverse_proxy
+POST /MAAS/accounts/login/ -> 204 (12.345ms)
 ```
 
 ## Service User Notes

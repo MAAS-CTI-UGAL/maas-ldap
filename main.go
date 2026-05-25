@@ -7,6 +7,7 @@ import (
 	"maas-ldap/db"
 	"maas-ldap/global_handlers"
 	"maas-ldap/logging"
+	"maas-ldap/middlewares"
 	"maas-ldap/users"
 	"net/http"
 )
@@ -53,7 +54,7 @@ func main() {
 	global_handlers.AddRoutes(mux)
 
 	log.Printf("Server running on %s", appConfig.Settings.ListenAddress)
-	err = http.ListenAndServe(appConfig.Settings.ListenAddress, mux)
+	err = http.ListenAndServe(appConfig.Settings.ListenAddress, middlewares.Logging(mux))
 	if err != nil {
 		log.Fatal(err)
 	}
