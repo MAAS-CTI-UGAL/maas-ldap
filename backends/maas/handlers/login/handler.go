@@ -2,6 +2,7 @@ package login
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -36,6 +37,8 @@ func NewHandler(appConfig config.AppConfig, users *users.Store, target url.URL, 
 
 // handleLogin gates target app login behind form validation and LDAP authorization.
 func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppConfig, users *users.Store, target url.URL, allowedGroup string) {
+	log.Printf("maas login handler called method=%s path=%s", r.Method, r.URL.Path)
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusBadRequest)
 		return
@@ -47,6 +50,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
+	log.Printf("maas login handler body=%s", redactedForm(login.form).Encode())
 
 	if err := maasldap.LdapBind(login.username, login.password, appConfig.LDAP); err != nil {
 		logging.Failure(login.username, "ldap_bind", err)
@@ -84,4 +88,15 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+}
+
+func redactedForm(form url.Values) url.Values {
+	redacted := url.Values{}
+	for key, values := range form {
+		redacted[key] = append([]string(nil), values...)
+	}
+	if _, ok := redacted["password"]; ok {
+		redacted.Set("password", "<redacted>")
+	}
+	return redacted
 }
