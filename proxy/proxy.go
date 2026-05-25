@@ -23,12 +23,11 @@ func ToTarget(
 		},
 		Rewrite: func(proxyRequest *httputil.ProxyRequest) {
 			// Point the outbound request at the backend while keeping the inbound query string.
-			proxyRequest.SetURL(&url.URL{
-				Scheme: target.Scheme,
-				Host:   target.Host,
-				Path:   target.Path,
-			})
+			proxyRequest.Out.URL.Scheme = target.Scheme
+			proxyRequest.Out.URL.Host = target.Host
+			proxyRequest.Out.URL.Path = target.Path
 			proxyRequest.Out.URL.RawQuery = proxyRequest.In.URL.RawQuery
+			proxyRequest.Out.Host = target.Host
 
 			// Replay the validated form with the mapped backend password.
 			proxyRequest.Out.Method = proxyRequest.In.Method
