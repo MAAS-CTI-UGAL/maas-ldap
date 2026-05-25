@@ -49,14 +49,14 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 	}
 
 	if err := maasldap.LdapBind(login.username, login.password, appConfig.LDAP); err != nil {
-		logging.Failure(login.username, "ldap_bind", errLDAPBind)
+		logging.Failure(login.username, "ldap_bind", err)
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
-	allowed, err := maasldap.LdapSearch(login.username, appConfig.LDAP, allowedGroup)
+	allowed, err := maasldap.LdapSearch(login.username, login.password, appConfig.LDAP, allowedGroup)
 	if err != nil {
-		logging.Failure(login.username, "ldap_search", errLDAPSearch)
+		logging.Failure(login.username, "ldap_search", err)
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
