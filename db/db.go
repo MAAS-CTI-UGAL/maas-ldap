@@ -83,17 +83,15 @@ func runMigration(database *sql.DB, entry fs.DirEntry) (bool, error) {
 
 	version := entry.Name()
 
-	// Skip migrations already recorded in schema_migrations.
 	applied, err := migrationApplied(database, version)
 	if err != nil {
 		return false, err
 	}
 	if applied {
-		log.Printf("database migration already applied: %s", version)
-		return false, nil
+		log.Printf("database migration already recorded, refreshing idempotent SQL: %s", version)
+	} else {
+		log.Printf("database migration applying: %s", version)
 	}
-
-	log.Printf("database migration applying: %s", version)
 
 	// Load the SQL for this migration from the embedded filesystem.
 	migration, err := migrations.ReadFile(path.Join(migrationsPath, version))
@@ -113,15 +111,22 @@ func runMigration(database *sql.DB, entry fs.DirEntry) (bool, error) {
 		return false, fmt.Errorf("apply migration %s: %w", version, err)
 	}
 
-	// Record the migration version only after the SQL succeeds.
-	if _, err := tx.Exec("INSERT INTO schema_migrations (version) VALUES (?)", version); err != nil {
-		_ = tx.Rollback()
-		return false, fmt.Errorf("record migration %s: %w", version, err)
+	if !applied {
+		// Record the migration version only after the SQL succeeds.
+		if _, err := tx.Exec("INSERT INTO schema_migrations (version) VALUES (?)", version); err != nil {
+			_ = tx.Rollback()
+			return false, fmt.Errorf("record migration %s: %w", version, err)
+		}
 	}
 
 	// Commit both the schema/data changes and the migration record.
 	if err := tx.Commit(); err != nil {
 		return false, fmt.Errorf("commit migration %s: %w", version, err)
+	}
+
+	if applied {
+		log.Printf("database migration refreshed: %s", version)
+		return false, nil
 	}
 
 	log.Printf("database migration applied: %s", version)
