@@ -31,7 +31,7 @@ func ToTarget(
 			proxyRequest.Out.URL.RawQuery = proxyRequest.In.URL.RawQuery
 
 			// Replay the validated form with the mapped backend password.
-			proxyRequest.Out.Method = proxyRequest.In.URL.RawQuery
+			proxyRequest.Out.Method = proxyRequest.In.Method
 			proxyRequest.Out.Body = io.NopCloser(bytes.NewReader(body))
 			proxyRequest.Out.ContentLength = int64(len(body))
 		},
