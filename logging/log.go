@@ -22,12 +22,12 @@ func Configure(logFile string) (*os.File, error) {
 	return file, nil
 }
 
-// Failure emits the user and failed step in a consistent format.
+// Failure emits a simple user and failed-step log line.
 func Failure(username, failedStep string, err error) {
 	log.Printf("user=%s failed_step=%s error=%v", username, failedStep, err)
 }
 
-// LoginEvent captures one summarized backend login request log.
+// LoginEvent captures the fields emitted for one backend login request.
 type LoginEvent struct {
 	Method      string
 	URL         string
@@ -41,7 +41,7 @@ type LoginEvent struct {
 	Error       string
 }
 
-// NewLoginEvent builds the default log event for one backend login request.
+// NewLoginEvent starts a backend login event from the inbound request.
 func NewLoginEvent(r *http.Request, target string) LoginEvent {
 	return LoginEvent{
 		Method:      r.Method,
@@ -54,7 +54,7 @@ func NewLoginEvent(r *http.Request, target string) LoginEvent {
 	}
 }
 
-// LogLoginEvent emits one compact line for a backend login request.
+// LogLoginEvent emits one summary line for a backend login request.
 func LogLoginEvent(event LoginEvent, status int) {
 	log.Printf(
 		"maas_login method=%s url=%q target=%q remote_addr=%q content_type=%q username=%q body=%q outcome=%s failed_step=%s error=%q status=%d",
@@ -72,7 +72,7 @@ func LogLoginEvent(event LoginEvent, status int) {
 	)
 }
 
-// StatusRecorder records the status code written by a handler.
+// StatusRecorder records the status code written through a ResponseWriter.
 type StatusRecorder struct {
 	http.ResponseWriter
 	status int

@@ -26,7 +26,8 @@ paths defined by that backend.
 1. Accepts `application/x-www-form-urlencoded` login requests.
 2. Reads `username` and `password` from the request body.
 3. Binds to LDAP as `username@LDAP_UPN_SUFFIX` with the submitted password.
-4. Searches LDAP under `LDAP_BASE_DN` for:
+4. Binds again with the submitted credentials, then searches LDAP under
+   `LDAP_BASE_DN` for:
 
    ```text
    (&(objectClass=user)(sAMAccountName=<username>))
@@ -84,7 +85,7 @@ If `LOG_PATH` is not set, logs are written only to stderr.
 
 ## SQLite User Mappings
 
-The app opens `DB_PATH`, runs embedded migrations, and loads
+The app opens `DB_PATH`, runs embedded migration SQL, and loads
 `maas_user_mappings` into memory at startup. If the DB file does not exist,
 SQLite creates it. The parent directory must already exist and be writable.
 
@@ -97,8 +98,10 @@ ON CONFLICT(username) DO UPDATE SET
     maas_password = excluded.maas_password;
 ```
 
-The `username` value must match the submitted LDAP username. Password mappings
-are loaded once at startup; restart the service after updating the database.
+Migration SQL is re-run at startup so idempotent seed upserts can refresh
+existing rows. The `username` value must match the submitted LDAP username.
+Password mappings are loaded into memory at startup; restart the service after
+manual database changes so the in-memory store sees them.
 
 ## Run
 
@@ -129,21 +132,22 @@ When running under `systemd`, stderr is captured by the journal:
 journalctl -u maas-ldap
 ```
 
-Login failures use this format:
+MAAS login requests emit one summary line per handler call:
 
 ```text
-user=<username> failed_step=<step> error=<error>
+maas_login method=POST url="https://maas.example.internal/MAAS/accounts/login/" target="http://10.13.201.10:5240/MAAS/accounts/login/" remote_addr="127.0.0.1:12345" content_type="application/x-www-form-urlencoded; charset=UTF-8" username="some.username" body="password=%3Credacted%3E&username=some.username" outcome=proxied failed_step= error="" status=204
 ```
 
-Known failure steps:
+The password value is redacted in logs. Known failure steps:
 
 ```text
+method_check
 decode_request
 ldap_bind
 ldap_search
 ldap_group_check
-password_mapping
-target_proxy
+username_mapping
+reverse_proxy
 ```
 
 ## Service User Notes

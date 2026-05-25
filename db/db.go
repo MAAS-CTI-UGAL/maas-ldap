@@ -17,7 +17,7 @@ const migrationsPath = "migrations"
 //go:embed migrations/*.sql
 var migrations embed.FS
 
-// Open opens the SQLite database at path and applies pending migrations.
+// Open opens the SQLite database at path and runs embedded migration SQL.
 func Open(dbPath string) (*sql.DB, error) {
 	database, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
@@ -35,7 +35,7 @@ func Open(dbPath string) (*sql.DB, error) {
 func runMigrations(database *sql.DB) error {
 	log.Printf("database migration check starting")
 
-	// Ensure the database can record which migrations have already run.
+	// Ensure the database can record which migration files have been seen.
 	if _, err := database.Exec(`
 		CREATE TABLE IF NOT EXISTS schema_migrations (
 			version TEXT PRIMARY KEY,
@@ -52,7 +52,7 @@ func runMigrations(database *sql.DB) error {
 	}
 	log.Printf("database migration files found: %d", len(entries))
 
-	// Apply migrations in filename order.
+	// Run migration SQL in filename order.
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].Name() < entries[j].Name()
 	})
@@ -99,13 +99,13 @@ func runMigration(database *sql.DB, entry fs.DirEntry) (bool, error) {
 		return false, fmt.Errorf("read migration %s: %w", version, err)
 	}
 
-	// Run each migration and its tracking insert atomically.
+	// Run migration SQL and any first-time tracking insert atomically.
 	tx, err := database.Begin()
 	if err != nil {
 		return false, fmt.Errorf("begin migration %s: %w", version, err)
 	}
 
-	// Apply the migration SQL.
+	// Migration SQL is intentionally re-run so idempotent seed upserts refresh.
 	if _, err := tx.Exec(string(migration)); err != nil {
 		_ = tx.Rollback()
 		return false, fmt.Errorf("apply migration %s: %w", version, err)
@@ -119,7 +119,7 @@ func runMigration(database *sql.DB, entry fs.DirEntry) (bool, error) {
 		}
 	}
 
-	// Commit both the schema/data changes and the migration record.
+	// Commit both the SQL changes and, if needed, the migration record.
 	if err := tx.Commit(); err != nil {
 		return false, fmt.Errorf("commit migration %s: %w", version, err)
 	}
