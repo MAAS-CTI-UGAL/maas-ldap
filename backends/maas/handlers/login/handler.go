@@ -2,7 +2,6 @@ package login
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	"net/url"
 
@@ -37,45 +36,57 @@ func NewHandler(appConfig config.AppConfig, users *users.Store, target url.URL, 
 
 // handleLogin gates target app login behind form validation and LDAP authorization.
 func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppConfig, users *users.Store, target url.URL, allowedGroup string) {
-	log.Printf("maas login handler called url=%s", requestURL(r))
+	recorder := &logging.StatusRecorder{ResponseWriter: w}
+	event := logging.NewLoginEvent(r, target.String())
+	defer func() {
+		logging.LogLoginEvent(event, recorder.StatusCode())
+	}()
 
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusBadRequest)
+		event.FailedStep = "method_check"
+		event.Error = "method not allowed"
+		http.Error(recorder, "Method not allowed", http.StatusBadRequest)
 		return
 	}
 
 	login, err := decodeLoginRequest(r)
 	if err != nil {
-		logging.Failure("-", "decode_request", errDecodeRequest)
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		event.FailedStep = "decode_request"
+		event.Error = errDecodeRequest.Error()
+		http.Error(recorder, "Bad request", http.StatusBadRequest)
 		return
 	}
-	log.Printf("maas login handler body=%s", redactedForm(login.form).Encode())
+	event.Username = login.username
+	event.Body = redactedForm(login.form).Encode()
 
 	if err := maasldap.LdapBind(login.username, login.password, appConfig.LDAP); err != nil {
-		logging.Failure(login.username, "ldap_bind", err)
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		event.FailedStep = "ldap_bind"
+		event.Error = err.Error()
+		http.Error(recorder, "Bad request", http.StatusBadRequest)
 		return
 	}
 
 	allowed, err := maasldap.LdapSearch(login.username, login.password, appConfig.LDAP, allowedGroup)
 	if err != nil {
-		logging.Failure(login.username, "ldap_search", err)
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		event.FailedStep = "ldap_search"
+		event.Error = err.Error()
+		http.Error(recorder, "Bad request", http.StatusBadRequest)
 		return
 	}
 
 	if !allowed {
-		logging.Failure(login.username, "ldap_group_check", errLDAPGroupCheck)
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		event.FailedStep = "ldap_group_check"
+		event.Error = errLDAPGroupCheck.Error()
+		http.Error(recorder, "Bad request", http.StatusBadRequest)
 		return
 	}
 
 	mapping, ok := users.Get(login.username)
 
 	if !ok {
-		logging.Failure(login.username, "username_mapping", errPasswordMap)
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		event.FailedStep = "username_mapping"
+		event.Error = errPasswordMap.Error()
+		http.Error(recorder, "Bad request", http.StatusBadRequest)
 		return
 	}
 
@@ -83,23 +94,13 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 	login.form.Set("password", mapping.Secret)
 	proxyBody := []byte(login.form.Encode())
 
-	if err := proxy.ToTarget(w, r, target, proxyBody); err != nil {
-		logging.Failure(login.username, "reverse_proxy", errTargetProxy)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	if err := proxy.ToTarget(recorder, r, target, proxyBody); err != nil {
+		event.FailedStep = "reverse_proxy"
+		event.Error = errTargetProxy.Error()
+		http.Error(recorder, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-}
-
-func requestURL(r *http.Request) string {
-	scheme := r.Header.Get("X-Forwarded-Proto")
-	if scheme == "" {
-		scheme = "http"
-	}
-	host := r.Host
-	if forwardedHost := r.Header.Get("X-Forwarded-Host"); forwardedHost != "" {
-		host = forwardedHost
-	}
-	return scheme + "://" + host + r.URL.RequestURI()
+	event.Outcome = "proxied"
 }
 
 func redactedForm(form url.Values) url.Values {
