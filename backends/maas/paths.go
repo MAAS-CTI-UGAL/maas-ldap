@@ -1,14 +1,10 @@
 package maas
 
 const (
-	LoginTarget  = "login"
-	LogoutTarget = "logout"
-
-	LoginPath  = "/MAAS/accounts/login/"
-	LogoutPath = "/MAAS/accounts/logout/"
+	LoginTarget = "login"
+	LoginPath   = "/MAAS/accounts/login/"
 )
 
-var Paths = map[string]string{
-	LoginTarget:  LoginPath,
-	LogoutTarget: LogoutPath,
+var TargetPaths = map[string]string{
+	LoginTarget: LoginPath,
 }
