@@ -9,76 +9,73 @@ import (
 	"maas-ldap/config"
 	maasldap "maas-ldap/ldap"
 	"maas-ldap/proxy"
-	"maas-ldap/users"
 )
-
-type loginRequest struct {
-	form     url.Values
-	username string
-	password string
-}
 
 var (
-	errInvalidMethod  = errors.New("invalid HTTP method")
-	errDecodeRequest  = errors.New("invalid login request")
-	errLDAPBind       = errors.New("ldap bind failed")
-	errLDAPSearch     = errors.New("ldap search failed")
-	errLDAPGroupCheck = errors.New("user is not in allowed group")
-	errPasswordMap    = errors.New("user mapping not found")
-	errTargetProxy    = errors.New("target proxy failed")
+	errInvalidMethod = errors.New("invalid HTTP method")
+	errDecodeRequest = errors.New("invalid login request")
+	errLDAPBind      = errors.New("ldap bind failed")
+	errLDAPSearch    = errors.New("ldap search failed")
+	errTargetProxy   = errors.New("target proxy failed")
 )
 
-const operationLogin = "login"
-
 // NewHandler creates the login endpoint handler from bootstrap config.
-func NewHandler(appConfig config.AppConfig, users *users.Store, target url.URL, allowedGroup string) http.HandlerFunc {
+func NewHandler(appConfig config.AppConfig, target url.URL, allowedGroup string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handleLogin(w, r, appConfig, users, target, allowedGroup)
+		handleLogin(w, r, appConfig, target, allowedGroup)
 	}
 }
 
 // handleLogin gates target app login behind form validation and LDAP authorization.
-func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppConfig, users *users.Store, target url.URL, allowedGroup string) {
+func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppConfig, target url.URL, allowedGroup string) {
 	if r.Method != http.MethodPost {
-		maaserror.WriteError(w, operationLogin, errInvalidMethod, nil, http.StatusBadRequest)
+		maaserror.WriteError(w, r.URL.Path, errInvalidMethod, nil, http.StatusBadRequest)
 		return
 	}
 
-	login, err := decodeLoginRequest(r)
+	form, err := decodeLoginRequest(r)
 	if err != nil {
-		maaserror.WriteError(w, operationLogin, errDecodeRequest, err, http.StatusBadRequest)
+		maaserror.WriteError(w, r.URL.Path, errDecodeRequest, err, http.StatusBadRequest)
 		return
 	}
 
-	if err := maasldap.LdapBind(login.username, login.password, appConfig.LDAP); err != nil {
-		maaserror.WriteError(w, operationLogin, errLDAPBind, err, http.StatusBadRequest)
+	username := form.Get("username")
+	password := form.Get("password")
+
+	if err := maasldap.LdapBind(username, password, appConfig.LDAP); err != nil {
+		maaserror.WriteError(w, r.URL.Path, errLDAPBind, err, http.StatusBadRequest)
 		return
 	}
 
-	allowed, err := maasldap.LdapSearch(login.username, login.password, appConfig.LDAP, allowedGroup)
+	entry, err := maasldap.LdapSearch(username, password, appConfig.LDAP, []string{"memberOf", "primaryTelexNumber"})
 	if err != nil {
-		maaserror.WriteError(w, operationLogin, errLDAPSearch, err, http.StatusBadRequest)
+		maaserror.WriteError(w, r.URL.Path, errLDAPSearch, err, http.StatusBadRequest)
+		return
+	}
+
+	allowed, err := checkAllowedGroup(entry, allowedGroup)
+	if err != nil {
+		maaserror.WriteError(w, r.URL.Path, errLDAPSearch, err, http.StatusBadRequest)
 		return
 	}
 
 	if !allowed {
-		maaserror.WriteError(w, operationLogin, errLDAPGroupCheck, nil, http.StatusBadRequest)
+		maaserror.WriteError(w, r.URL.Path, errLDAPSearch, errLDAPGroupCheck, http.StatusBadRequest)
 		return
 	}
 
-	mapping, ok := users.Get(login.username)
-
-	if !ok {
-		maaserror.WriteError(w, operationLogin, errPasswordMap, nil, http.StatusBadRequest)
+	maasPassword, err := maasPassword(entry)
+	if err != nil {
+		maaserror.WriteError(w, r.URL.Path, errLDAPSearch, err, http.StatusBadRequest)
 		return
 	}
 
 	// Only the password is rewritten; all other form fields are preserved.
-	login.form.Set("password", mapping.Secret)
-	proxyBody := []byte(login.form.Encode())
+	form.Set("password", maasPassword)
+	proxyBody := []byte(form.Encode())
 
 	if err := proxy.ToTarget(w, r, target, proxyBody); err != nil {
-		maaserror.WriteError(w, operationLogin, errTargetProxy, err, http.StatusInternalServerError)
+		maaserror.WriteError(w, r.URL.Path, errTargetProxy, err, http.StatusInternalServerError)
 		return
 	}
 }

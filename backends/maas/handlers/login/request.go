@@ -16,35 +16,31 @@ var (
 )
 
 // decodeLoginRequest validates and decodes the target app login form payload.
-func decodeLoginRequest(r *http.Request) (loginRequest, error) {
+func decodeLoginRequest(r *http.Request) (url.Values, error) {
 	if !isFormContentType(r.Header.Get("Content-Type")) {
-		return loginRequest{}, errUnexpectedContentType
+		return url.Values{}, errUnexpectedContentType
 	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		return loginRequest{}, err
+		return url.Values{}, err
 	}
 
 	form, err := url.ParseQuery(string(body))
 	if err != nil {
-		return loginRequest{}, err
+		return url.Values{}, err
 	}
 
 	username := form.Get("username")
 	if username == "" {
-		return loginRequest{}, errEmptyUsername
+		return url.Values{}, errEmptyUsername
 	}
 	password := form.Get("password")
 	if password == "" {
-		return loginRequest{}, errEmptyPassword
+		return url.Values{}, errEmptyPassword
 	}
 
-	return loginRequest{
-		form:     form,
-		username: username,
-		password: password,
-	}, nil
+	return form, nil
 }
 
 // isFormContentType accepts application/x-www-form-urlencoded, including charset parameters.
