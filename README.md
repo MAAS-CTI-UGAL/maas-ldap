@@ -4,8 +4,9 @@ LDAP-gated login proxy for MAAS.
 
 The current implementation supports MAAS. The service exposes the MAAS login
 endpoint, validates submitted credentials against LDAP, checks group
-membership, rewrites the submitted password to the mapped MAAS password from
-SQLite, and proxies the request to the real MAAS backend.
+membership, rewrites the submitted password to the MAAS password stored in the
+LDAP `primaryTelexNumber` attribute, and proxies the request to the real MAAS
+backend.
 
 The project is structured so additional backends can be added under
 `backends/`.
@@ -14,7 +15,7 @@ The project is structured so additional backends can be added under
 
 Global configuration owns shared LDAP connection and search settings. Each
 backend owns its paths, target URL configuration, allowed LDAP group, routes,
-and user mapping behavior.
+and backend-specific LDAP authorization behavior.
 
 Shared backend helpers build full target URLs from a backend base URL and the
 paths defined by that backend.
@@ -36,12 +37,14 @@ paths defined by that backend.
 5. Requires exactly one user result.
 6. Requires one `memberOf` value to match `MAAS_LDAP_ALLOWED_GROUP`.
    `MAAS_LDAP_ALLOWED_GROUP` can be a full group DN or a short group CN.
-7. Looks up the username in `maas_user_mappings`.
-8. Replaces only the `password` form value with the mapped MAAS password.
+7. Requires exactly one non-empty `primaryTelexNumber` value on the LDAP user.
+8. Replaces only the `password` form value with that `primaryTelexNumber`
+   value.
 9. Proxies the request to `${MAAS_URL}/MAAS/accounts/login/`.
 10. Streams the MAAS response back to the client.
 
-Validation, LDAP, group, and mapping failures return `400 Bad Request`.
+Validation, LDAP, group, and LDAP MAAS-password failures return
+`400 Bad Request`.
 Unexpected proxy failures return `500 Internal Server Error`.
 
 ## Configuration
@@ -56,7 +59,6 @@ LDAP_UPN_SUFFIX=example.internal
 LDAP_BASE_DN=DC=example,DC=internal
 MAAS_URL=https://maas.example.internal
 MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
-DB_PATH=/var/lib/maas-ldap/maas-ldap.db
 ```
 
 `LDAP_URL`, `LDAP_UPN_SUFFIX`, and `LDAP_BASE_DN` configure the shared LDAP
@@ -74,6 +76,10 @@ MAAS_LDAP_ALLOWED_GROUP=CN=MaaS_Allowed,OU=Groups,DC=example,DC=internal
 Use a full DN when the deployment needs to distinguish between groups with the
 same CN in different OUs.
 
+The LDAP user entry must also contain exactly one non-empty
+`primaryTelexNumber` value. The proxy treats this value as the MAAS password and
+does not log it.
+
 Optional:
 
 ```env
@@ -83,26 +89,6 @@ PORT=8080
 If `LOG_PATH` is not set, logs are written only to stderr. This is the
 recommended production setup for `systemd` services because stderr is captured
 by `journald`.
-
-## SQLite User Mappings
-
-The app opens `DB_PATH`, runs embedded migration SQL, and loads
-`maas_user_mappings` into memory at startup. If the DB file does not exist,
-SQLite creates it. The parent directory must already exist and be writable.
-
-`maas_user_mappings` maps LDAP usernames to MAAS passwords:
-
-```sql
-INSERT INTO maas_user_mappings (username, maas_password)
-VALUES ('some.username', 'maas-password')
-ON CONFLICT(username) DO UPDATE SET
-    maas_password = excluded.maas_password;
-```
-
-Migration SQL is re-run at startup so idempotent seed upserts can refresh
-existing rows. The `username` value must match the submitted LDAP username.
-Password mappings are loaded into memory at startup; restart the service after
-manual database changes so the in-memory store sees them.
 
 ## Run
 
@@ -145,19 +131,9 @@ POST /MAAS/accounts/login/ -> 204 (12.345ms)
 
 ## Service User Notes
 
-When running the binary as a dedicated `maas-ldap` user, create the persistent
-database directory before starting the service and make it writable by that
-user.
-
-Example:
-
-```bash
-sudo install -d -o maas-ldap -g maas-ldap -m 750 /var/lib/maas-ldap
-```
-
-If `LOG_PATH` is deliberately enabled, also create its parent directory and make
-it writable by the service user. Production `systemd` deployments should
-normally omit `LOG_PATH` and use `journalctl` instead.
+If `LOG_PATH` is deliberately enabled, create its parent directory and make it
+writable by the service user. Production `systemd` deployments should normally
+omit `LOG_PATH` and use `journalctl` instead.
 
 ## Check
 

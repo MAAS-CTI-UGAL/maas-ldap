@@ -11,7 +11,6 @@ LDAP_UPN_SUFFIX=example.internal
 LDAP_BASE_DN=DC=example,DC=internal
 MAAS_URL=https://maas.example.internal
 MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
-DB_PATH=/var/lib/maas-ldap/maas-ldap.db
 
 PORT=8080
 ```
@@ -28,17 +27,10 @@ MAAS_URL=http://10.13.201.10:5240
 MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
 ```
 
-Local development can use repository-local runtime files:
+Local development can use a repository-local log file:
 
 ```env
-DB_PATH=./maas-ldap.db
 LOG_PATH=./maas-ldap.log
-```
-
-Production should normally use persistent system paths, for example:
-
-```env
-DB_PATH=/var/lib/maas-ldap/maas-ldap.db
 ```
 
 When running as a `systemd` service, omit `LOG_PATH` in production so logs go
@@ -103,6 +95,11 @@ GRAFANA_LDAP_ALLOWED_GROUP=Grafana_Allowed
 The value can be either a short group CN or a full group DN. Use a full DN when
 different OUs may contain groups with the same CN.
 
+The matching LDAP user must have:
+
+- at least one `memberOf` value matching `MAAS_LDAP_ALLOWED_GROUP`
+- exactly one non-empty `primaryTelexNumber` value containing the MAAS password
+
 `MAAS_URL`
 
 Base URL for the MAAS backend. Include the scheme and host, but do not include
@@ -114,26 +111,6 @@ Examples:
 MAAS_URL=https://maas.example.internal
 MAAS_URL=http://maas.example.internal:5240
 ```
-
-`DB_PATH`
-
-SQLite database file path used for MAAS user password mappings.
-
-Example:
-
-```env
-DB_PATH=/var/lib/maas-ldap/maas-ldap.db
-```
-
-The value must point to a database file, not only a directory. For a database in
-the current working directory, use a filename such as:
-
-```env
-DB_PATH=./maas-ldap.db
-```
-
-If the database file does not exist, SQLite creates it. The parent directory
-must already exist and be writable by the user running the app.
 
 ## Optional Values
 
