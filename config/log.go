@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+const envLogPath = "LOG_PATH"
+
 // LogSettings contains logging resources configured at startup.
 type LogSettings struct {
 	FilePath string
