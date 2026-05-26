@@ -42,30 +42,30 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 
 	login, err := decodeLoginRequest(r)
 	if err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		http.Error(w, "Invalid login request", http.StatusBadRequest)
 		return
 	}
 
 	if err := maasldap.LdapBind(login.username, login.password, appConfig.LDAP); err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		http.Error(w, "Binding to LDAP failed", http.StatusBadRequest)
 		return
 	}
 
 	allowed, err := maasldap.LdapSearch(login.username, login.password, appConfig.LDAP, allowedGroup)
 	if err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		http.Error(w, "LDAP search failed", http.StatusBadRequest)
 		return
 	}
 
 	if !allowed {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		http.Error(w, "User is not in allowed group", http.StatusBadRequest)
 		return
 	}
 
 	mapping, ok := users.Get(login.username)
 
 	if !ok {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		http.Error(w, "User mapping not found", http.StatusBadRequest)
 		return
 	}
 

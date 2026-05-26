@@ -25,14 +25,6 @@ var (
 // LdapBind verifies the supplied username and password against LDAP.
 func LdapBind(username, password string, config config.LDAPConfig) error {
 
-	if config.URL == "" {
-		return errMissingLDAPURL
-	}
-
-	if config.UPN_SUFFIX == "" {
-		return errMissingLDAPUPNSuffix
-	}
-
 	if username == "" || password == "" {
 		return errEmptyCredentials
 	}
