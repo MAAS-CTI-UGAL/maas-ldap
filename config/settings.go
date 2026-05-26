@@ -18,15 +18,17 @@ var errMissingDBPath = errors.New("application configuration is incomplete. Plea
 // AppSettings contains application-wide routes and file paths.
 type AppSettings struct {
 	ListenAddress string
-	LogFilePath   string
+	Log           LogSettings
 	DBPath        string
 }
 
 func loadAppSettings() AppSettings {
 	listenAddress := loadListenAddress()
 
-	// If envLogPath is not set, Configure will log to stderr only.
-	logFilePath := envOrDefault(envLogPath, "")
+	logSettings, err := loadLogSettings()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	dbPath, err := loadDBPath()
 	if err != nil {
@@ -35,7 +37,7 @@ func loadAppSettings() AppSettings {
 
 	return AppSettings{
 		ListenAddress: listenAddress,
-		LogFilePath:   logFilePath,
+		Log:           logSettings,
 		DBPath:        dbPath,
 	}
 }

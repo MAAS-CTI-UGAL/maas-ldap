@@ -6,7 +6,6 @@ import (
 	"maas-ldap/config"
 	"maas-ldap/db"
 	"maas-ldap/global_handlers"
-	"maas-ldap/logging"
 	"maas-ldap/middlewares"
 	"maas-ldap/users"
 	"net/http"
@@ -15,12 +14,8 @@ import (
 func main() {
 	// Load environment configuration before wiring handlers so startup fails fast on bad env.
 	appConfig := config.Bootstrap()
-	logFile, err := logging.Configure(appConfig.Settings.LogFilePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if logFile != nil {
-		defer logFile.Close()
+	if appConfig.Settings.Log.File != nil {
+		defer appConfig.Settings.Log.File.Close()
 	}
 
 	database, err := db.Open(appConfig.Settings.DBPath)
