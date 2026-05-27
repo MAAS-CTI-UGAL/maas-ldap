@@ -1,7 +1,6 @@
 package login
 
 import (
-	"errors"
 	"net/http"
 	"net/url"
 
@@ -9,14 +8,6 @@ import (
 	"maas-ldap/config"
 	maasldap "maas-ldap/ldap"
 	"maas-ldap/proxy"
-)
-
-var (
-	errInvalidMethod = errors.New("invalid HTTP method")
-	errDecodeRequest = errors.New("invalid login request")
-	errLDAPBind      = errors.New("ldap bind failed")
-	errLDAPSearch    = errors.New("ldap search failed")
-	errTargetProxy   = errors.New("target proxy failed")
 )
 
 // NewHandler creates the login endpoint handler from bootstrap config.
@@ -29,13 +20,14 @@ func NewHandler(appConfig config.AppConfig, target url.URL, allowedGroup string)
 // handleLogin gates target app login behind form validation and LDAP authorization.
 func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppConfig, target url.URL, allowedGroup string) {
 	if r.Method != http.MethodPost {
-		maaserror.WriteError(w, r.URL.Path, errInvalidMethod, nil, http.StatusBadRequest)
+		w.Header().Set("Allow", http.MethodPost)
+		maaserror.WriteError(w, r.URL.Path, "Invalid HTTP method", "This page only accepts login submissions.", nil, http.StatusMethodNotAllowed)
 		return
 	}
 
 	form, err := decodeLoginRequest(r)
 	if err != nil {
-		maaserror.WriteError(w, r.URL.Path, errDecodeRequest, err, http.StatusBadRequest)
+		maaserror.WriteError(w, r.URL.Path, "Invalid login request", "Please submit the login form again.", err, http.StatusBadRequest)
 		return
 	}
 
@@ -43,30 +35,24 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 	password := form.Get("password")
 
 	if err := maasldap.LdapBind(username, password, appConfig.LDAP); err != nil {
-		maaserror.WriteError(w, r.URL.Path, errLDAPBind, err, http.StatusBadRequest)
+		maaserror.WriteError(w, r.URL.Path, "LDAP bind failed", "We could not sign you in. Please check your username and password.", err, http.StatusUnauthorized)
 		return
 	}
 
 	entry, err := maasldap.LdapSearch(username, password, appConfig.LDAP, []string{"memberOf", "primaryTelexNumber"})
 	if err != nil {
-		maaserror.WriteError(w, r.URL.Path, errLDAPSearch, err, http.StatusBadRequest)
+		maaserror.WriteError(w, r.URL.Path, "LDAP search failed", "We could not verify your MAAS access. Please try again or contact an administrator.", err, http.StatusBadRequest)
 		return
 	}
 
-	allowed, err := checkAllowedGroup(entry, allowedGroup)
-	if err != nil {
-		maaserror.WriteError(w, r.URL.Path, errLDAPSearch, err, http.StatusBadRequest)
-		return
-	}
-
-	if !allowed {
-		maaserror.WriteError(w, r.URL.Path, errLDAPSearch, errLDAPGroupCheck, http.StatusBadRequest)
+	if !checkAllowedGroup(entry, allowedGroup) {
+		maaserror.WriteError(w, r.URL.Path, "User is not in the allowed LDAP group", "You are not allowed to access MAAS.", errLDAPGroupCheck, http.StatusForbidden)
 		return
 	}
 
 	maasPassword, err := maasPassword(entry)
 	if err != nil {
-		maaserror.WriteError(w, r.URL.Path, errLDAPSearch, err, http.StatusBadRequest)
+		maaserror.WriteError(w, r.URL.Path, "LDAP entry is missing the MAAS password", "We could not verify your MAAS access. Please try again or contact an administrator.", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -75,7 +61,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 	proxyBody := []byte(form.Encode())
 
 	if err := proxy.ToTarget(w, r, target, proxyBody); err != nil {
-		maaserror.WriteError(w, r.URL.Path, errTargetProxy, err, http.StatusInternalServerError)
+		maaserror.WriteError(w, r.URL.Path, "Target proxy failed", "MAAS login is temporarily unavailable. Please try again later.", err, http.StatusBadGateway)
 		return
 	}
 }

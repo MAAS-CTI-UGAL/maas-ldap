@@ -8,21 +8,20 @@ import (
 )
 
 var (
-	errLDAPUnexpectedEntryCount = errors.New("ldap search expected 1 user")
-	errLDAPMissingMAASPassword  = errors.New("ldap entry is missing maas password")
-	errLDAPGroupCheck           = errors.New("user is not in allowed group")
+	errLDAPMissingMAASPassword = errors.New("ldap entry is missing maas password")
+	errLDAPGroupCheck          = errors.New("user is not in allowed group")
 )
 
-func checkAllowedGroup(entry *ldap.Entry, allowedGroup string) (bool, error) {
+func checkAllowedGroup(entry *ldap.Entry, allowedGroup string) bool {
 	// Membership values are full DNs. The allowed group can be either a full DN
 	// or a short CN value.
 	for _, group := range entry.GetAttributeValues("memberOf") {
 		if isAllowedGroup(group, allowedGroup) {
-			return true, nil
+			return true
 		}
 	}
 
-	return false, errLDAPGroupCheck
+	return false
 }
 
 func maasPassword(entry *ldap.Entry) (string, error) {

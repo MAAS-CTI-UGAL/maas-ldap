@@ -6,14 +6,13 @@ import (
 )
 
 // WriteError logs a MAAS operation failure and writes the public HTTP error response.
-// responseErr is sent to the client; internalErr is only logged so lower-level
-// failure details can be diagnosed without exposing them in the response body.
-func WriteError(w http.ResponseWriter, operation string, responseErr error, internalErr error, statusCode int) {
+// logMessage is only logged; userMessage is sent to the client.
+func WriteError(w http.ResponseWriter, operation string, logMessage string, userMessage string, internalErr error, statusCode int) {
 	if internalErr != nil {
-		log.Printf("%s failed: %s: %v", operation, responseErr, internalErr)
+		log.Printf("%s failed: %s: %v", operation, logMessage, internalErr)
 	} else {
-		log.Printf("%s failed: %s", operation, responseErr)
+		log.Printf("%s failed: %s", operation, logMessage)
 	}
 
-	http.Error(w, responseErr.Error(), statusCode)
+	http.Error(w, userMessage, statusCode)
 }
