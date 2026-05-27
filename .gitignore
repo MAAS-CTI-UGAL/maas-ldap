@@ -37,3 +37,6 @@ go.work.sum
 
 # Logs
 *.log
+
+# Exclude the binary
+maas-ldap

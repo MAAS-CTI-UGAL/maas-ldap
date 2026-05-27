@@ -2,14 +2,14 @@
 
 These repositories use GitHub as the main remote for pulling/fetching, while pushes are sent to both GitHub and CTI GitLab.
 
-After cloning either repository, run the matching commands below from inside the cloned repository.
+After cloning a repository, run the matching commands below from inside the cloned repository.
 
 ## maas-ldap
 
 ```bash
 git remote set-url origin git@github.com:TudorBogos/maas-ldap.git
 git remote set-url --add --push origin git@github.com:TudorBogos/maas-ldap.git
-git remote set-url --add --push origin git@git.cti.ugal.ro:tb171/maas-ldap.git
+git remote set-url --add --push origin git@git.cti.ugal.ro:maas/maas-ldap.git
 ```
 
 Expected result:
@@ -17,7 +17,7 @@ Expected result:
 ```text
 origin  git@github.com:TudorBogos/maas-ldap.git (fetch)
 origin  git@github.com:TudorBogos/maas-ldap.git (push)
-origin  git@git.cti.ugal.ro:tb171/maas-ldap.git (push)
+origin  git@git.cti.ugal.ro:maas/maas-ldap.git (push)
 ```
 
 ## Check
