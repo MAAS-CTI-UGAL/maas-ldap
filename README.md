@@ -156,16 +156,14 @@ into `/opt/maas-ldap`, installs the systemd unit, and restarts the service.
 Install Go and Git on the host before running the pipeline.
 
 The service runs as the locked `maas` system user with group `deploy`.
-One-time host setup is a prerequisite and must not be run by CI:
+One-time host setup must create the users and groups. The CI job creates and
+repairs `/opt/maas-ldap` during deployment.
 
 ```bash
 sudo groupadd --system deploy
 sudo groupadd --system maas
 sudo useradd --system --gid maas --groups deploy --home-dir /nonexistent --shell /usr/sbin/nologin --comment "MAAS service account" maas
 sudo usermod -aG deploy gitlab-runner
-sudo mkdir -p /opt/maas-ldap
-sudo chown maas:deploy /opt/maas-ldap
-sudo chmod 2770 /opt/maas-ldap
 ```
 
 If the `maas` user already exists, only ensure both users are in `deploy`:
@@ -205,11 +203,12 @@ Add this sudoers entry with `visudo`, preferably as
 `/etc/sudoers.d/gitlab-runner-maas-ldap`:
 
 ```sudoers
-gitlab-runner ALL=(root) NOPASSWD: /usr/bin/install -m 0644 /opt/maas-ldap/maas-ldap.service /etc/systemd/system/maas-ldap.service, /usr/bin/systemctl daemon-reload, /usr/bin/systemctl enable maas-ldap.service, /usr/bin/systemctl restart maas-ldap.service, /usr/bin/systemctl status maas-ldap.service --no-pager
+gitlab-runner ALL=(root) NOPASSWD: /usr/bin/install -d -o maas -g deploy -m 2770 /opt/maas-ldap, /usr/bin/chown maas\:deploy /opt/maas-ldap /opt/maas-ldap/maas-ldap /opt/maas-ldap/.env /opt/maas-ldap/maas-ldap.service, /usr/bin/chmod 2770 /opt/maas-ldap, /usr/bin/chmod 0750 /opt/maas-ldap/maas-ldap, /usr/bin/chmod 0640 /opt/maas-ldap/.env, /usr/bin/chmod 0644 /opt/maas-ldap/maas-ldap.service, /usr/bin/install -m 0644 /opt/maas-ldap/maas-ldap.service /etc/systemd/system/maas-ldap.service, /usr/bin/systemctl daemon-reload, /usr/bin/systemctl enable maas-ldap.service, /usr/bin/systemctl restart maas-ldap.service, /usr/bin/systemctl status maas-ldap.service --no-pager
 ```
 
-The CI job avoids sudo for normal writes into `/opt/maas-ldap`; the `deploy`
-group and setgid directory permissions provide that access.
+The CI job uses explicit `install`, `chown`, and `chmod` modes for deployed
+files. A `umask` is not required; the explicit modes are clearer and the
+setgid bit on `/opt/maas-ldap` keeps new files in the `deploy` group.
 
 ## Check
 

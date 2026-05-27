@@ -26,9 +26,15 @@ deploy:
     - test -r "$ENV_FILE"
     - go mod download
     - go build -o maas-ldap .
+    - sudo /usr/bin/install -d -o maas -g deploy -m 2770 /opt/maas-ldap
     - install -m 0750 maas-ldap /opt/maas-ldap/maas-ldap
     - install -m 0640 "$ENV_FILE" /opt/maas-ldap/.env
     - install -m 0644 maas-ldap.service /opt/maas-ldap/maas-ldap.service
+    - sudo /usr/bin/chown maas:deploy /opt/maas-ldap /opt/maas-ldap/maas-ldap /opt/maas-ldap/.env /opt/maas-ldap/maas-ldap.service
+    - sudo /usr/bin/chmod 2770 /opt/maas-ldap
+    - sudo /usr/bin/chmod 0750 /opt/maas-ldap/maas-ldap
+    - sudo /usr/bin/chmod 0640 /opt/maas-ldap/.env
+    - sudo /usr/bin/chmod 0644 /opt/maas-ldap/maas-ldap.service
     - sudo /usr/bin/install -m 0644 /opt/maas-ldap/maas-ldap.service /etc/systemd/system/maas-ldap.service
     - sudo /usr/bin/systemctl daemon-reload
     - sudo /usr/bin/systemctl enable maas-ldap.service
