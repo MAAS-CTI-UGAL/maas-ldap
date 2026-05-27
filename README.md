@@ -44,9 +44,15 @@ that backend.
 9. Proxies the request to `${MAAS_URL}/MAAS/accounts/login/`.
 10. Streams the MAAS response back to the client.
 
-Validation, LDAP, group, and LDAP MAAS-password failures return
-`400 Bad Request`.
-Unexpected proxy failures return `500 Internal Server Error`.
+Failure responses use public, user-friendly messages while internal details are
+kept in the application logs:
+
+- non-`POST` requests return `405 Method Not Allowed`
+- invalid login form submissions return `400 Bad Request`
+- failed LDAP authentication returns `401 Unauthorized`
+- users outside the allowed LDAP group return `403 Forbidden`
+- missing LDAP MAAS-password data returns `500 Internal Server Error`
+- unexpected MAAS proxy failures return `502 Bad Gateway`
 
 ## Configuration
 
