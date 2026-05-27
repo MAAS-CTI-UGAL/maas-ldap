@@ -6,9 +6,12 @@ loaded, or if any required value is missing, startup stops with a fatal error.
 ## Example
 
 ```env
+BACKENDS=maas
+
 LDAP_URL=ldap://ldap.example.internal:389
 LDAP_UPN_SUFFIX=example.internal
 LDAP_BASE_DN=DC=example,DC=internal
+
 MAAS_URL=https://maas.example.internal
 MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
 
@@ -20,9 +23,12 @@ PORT=8080
 For the CTI MAAS deployment, these values are known:
 
 ```env
+BACKENDS=maas
+
 LDAP_URL=ldap://10.13.11.1:389
 LDAP_UPN_SUFFIX=cti.ugal.ro
 LDAP_BASE_DN=DC=CTI,DC=UGAL,DC=RO
+
 MAAS_URL=http://10.13.201.10:5240
 MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
 ```
@@ -39,9 +45,20 @@ to stderr and are captured by `journald`. Use `journalctl -u maas-ldap` or
 
 ## Required Values
 
+`BACKENDS`
+
+Comma-separated list of registered backends to enable. Only listed backends are
+loaded and validated. Names are matched case-insensitively.
+
+Current registered backend:
+
+```env
+BACKENDS=maas
+```
+
 The global LDAP values configure how the app connects to LDAP and searches for
 users. Backend-specific LDAP values configure which LDAP group authorizes access
-to each backend.
+to each enabled backend.
 
 `LDAP_URL`
 

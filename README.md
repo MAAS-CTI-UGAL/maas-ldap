@@ -8,17 +8,18 @@ membership, rewrites the submitted password to the MAAS password stored in the
 LDAP `primaryTelexNumber` attribute, and proxies the request to the real MAAS
 backend.
 
-The project is structured so additional backends can be added under
-`backends/`.
+The project is structured so additional login backends can be added to the
+backend registry.
 
 ## Architecture
 
-Global configuration owns shared LDAP connection and search settings. Each
-backend owns its paths, target URL configuration, allowed LDAP group, routes,
-and backend-specific LDAP authorization behavior.
+Global configuration owns shared LDAP connection and search settings. The
+backend registry owns each backend's login path, target URL environment key,
+allowed LDAP group environment key, and login handler.
 
-Shared backend helpers build full target URLs from a backend base URL and the
-paths defined by that backend.
+`BACKENDS` controls which registered backends are active. Shared backend helpers
+build full target URLs from a backend base URL and the login path defined by
+that backend.
 
 ## Login Flow
 
@@ -54,17 +55,23 @@ Configuration is loaded from `.env` at startup.
 Required:
 
 ```env
+BACKENDS=maas
+
 LDAP_URL=ldap://example.internal:389
 LDAP_UPN_SUFFIX=example.internal
 LDAP_BASE_DN=DC=example,DC=internal
+
 MAAS_URL=https://maas.example.internal
 MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
 ```
 
-`LDAP_URL`, `LDAP_UPN_SUFFIX`, and `LDAP_BASE_DN` configure the shared LDAP
-server and user search. Backend-specific authorization groups use the
-`<BACKEND_NAME>_LDAP_ALLOWED_GROUP` pattern; the current MAAS backend requires
-`MAAS_LDAP_ALLOWED_GROUP`.
+`BACKENDS` is a comma-separated list of registered backend names to enable.
+The current registered backend is `maas`.
+
+`LDAP_URL`, `LDAP_UPN_SUFFIX`, and `LDAP_BASE_DN` configure the global LDAP
+server and user search shared by all backends. Backend-specific authorization
+groups use the `<BACKEND_NAME>_LDAP_ALLOWED_GROUP` pattern; the current MAAS
+backend requires `MAAS_LDAP_ALLOWED_GROUP`.
 
 Allowed groups can be a short CN or a full DN. For example:
 
