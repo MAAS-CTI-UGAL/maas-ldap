@@ -148,6 +148,69 @@ If `LOG_PATH` is deliberately enabled, create its parent directory and make it
 writable by the service user. Production `systemd` deployments should normally
 omit `LOG_PATH` and use `journalctl` instead.
 
+## Deployment
+
+Production deployment uses a shell GitLab Runner on the host that runs the
+service. The runner builds in its temporary checkout, installs runtime files
+into `/opt/maas-ldap`, installs the systemd unit, and restarts the service.
+Install Go and Git on the host before running the pipeline.
+
+The service runs as the locked `maas` system user with group `deploy`.
+One-time host setup is a prerequisite and must not be run by CI:
+
+```bash
+sudo groupadd --system deploy
+sudo groupadd --system maas
+sudo useradd --system --gid maas --groups deploy --home-dir /nonexistent --shell /usr/sbin/nologin --comment "MAAS service account" maas
+sudo usermod -aG deploy gitlab-runner
+sudo mkdir -p /opt/maas-ldap
+sudo chown maas:deploy /opt/maas-ldap
+sudo chmod 2770 /opt/maas-ldap
+```
+
+If the `maas` user already exists, only ensure both users are in `deploy`:
+
+```bash
+sudo usermod -aG deploy maas
+sudo usermod -aG deploy gitlab-runner
+```
+
+The exact UID and GID do not need to be hardcoded. A valid service account can
+look like:
+
+```text
+maas:x:999:988:MAAS service account:/nonexistent:/usr/sbin/nologin
+```
+
+The GitLab CI/CD variable for the production `.env` file must be:
+
+- name: `ENV_FILE`
+- type: `File`
+- protected
+- not masked, because multiline file variables cannot be masked
+- variable reference expansion disabled
+
+Use these contents for the current CTI MAAS deployment:
+
+```env
+BACKENDS=maas
+LDAP_URL=ldap://10.13.11.1:389
+LDAP_UPN_SUFFIX=cti.ugal.ro
+LDAP_BASE_DN=DC=CTI,DC=UGAL,DC=RO
+MAAS_URL=http://10.13.201.10:5240
+MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
+```
+
+Add this sudoers entry with `visudo`, preferably as
+`/etc/sudoers.d/gitlab-runner-maas-ldap`:
+
+```sudoers
+gitlab-runner ALL=(root) NOPASSWD: /usr/bin/install -m 0644 /opt/maas-ldap/maas-ldap.service /etc/systemd/system/maas-ldap.service, /usr/bin/systemctl daemon-reload, /usr/bin/systemctl enable maas-ldap.service, /usr/bin/systemctl restart maas-ldap.service, /usr/bin/systemctl status maas-ldap.service --no-pager
+```
+
+The CI job avoids sudo for normal writes into `/opt/maas-ldap`; the `deploy`
+group and setgid directory permissions provide that access.
+
 ## Check
 
 ```bash

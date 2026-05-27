@@ -1,0 +1,36 @@
+stages:
+  - check
+  - deploy
+
+check:
+  stage: check
+  tags:
+    - maas-check
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+  script:
+    - go mod download
+    - go build -o maas-ldap .
+
+deploy:
+  stage: deploy
+  tags:
+    - maas-deploy
+  resource_group: maas-ldap-production
+  needs:
+    - check
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  script:
+    - test -r "$ENV_FILE"
+    - go mod download
+    - go build -o maas-ldap .
+    - install -m 0750 maas-ldap /opt/maas-ldap/maas-ldap
+    - install -m 0640 "$ENV_FILE" /opt/maas-ldap/.env
+    - install -m 0644 maas-ldap.service /opt/maas-ldap/maas-ldap.service
+    - sudo /usr/bin/install -m 0644 /opt/maas-ldap/maas-ldap.service /etc/systemd/system/maas-ldap.service
+    - sudo /usr/bin/systemctl daemon-reload
+    - sudo /usr/bin/systemctl enable maas-ldap.service
+    - sudo /usr/bin/systemctl restart maas-ldap.service
+    - sudo /usr/bin/systemctl status maas-ldap.service --no-pager
