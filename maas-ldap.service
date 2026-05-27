@@ -1,0 +1,20 @@
+[Unit]
+Description=MAAS LDAP login proxy
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=maas
+Group=deploy
+WorkingDirectory=/opt/maas-ldap
+ExecStart=/opt/maas-ldap/maas-ldap
+Restart=always
+RestartSec=5s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
