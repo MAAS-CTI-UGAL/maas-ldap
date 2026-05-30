@@ -2,10 +2,9 @@ package backends
 
 import (
 	"fmt"
+	"maas-ldap/backends/maas"
 	"os"
 	"strings"
-
-	maaslogin "maas-ldap/backends/maas/handlers/login"
 )
 
 var definitions = map[string]Definition{
@@ -14,7 +13,7 @@ var definitions = map[string]Definition{
 		BaseURLEnv:      "MAAS_URL",
 		AllowedGroupEnv: "MAAS_LDAP_ALLOWED_GROUP",
 		LoginPath:       "/MAAS/accounts/login/",
-		NewLoginHandler: maaslogin.NewHandler,
+		NewLoginHandler: maas.NewHandler,
 	},
 }
 
