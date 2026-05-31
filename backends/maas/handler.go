@@ -5,7 +5,7 @@ import (
 	"net/url"
 
 	"maas-ldap/config"
-	maasldap "maas-ldap/ldap"
+	"maas-ldap/ldap"
 	"maas-ldap/proxy"
 )
 
@@ -33,19 +33,14 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 	username := form.Get("username")
 	password := form.Get("password")
 
-	if err := maasldap.LdapBind(username, password, appConfig.LDAP); err != nil {
-		WriteError(w, r.URL.Path, "LDAP bind failed", "We could not sign you in. Please check your username and password.", err, http.StatusUnauthorized)
-		return
-	}
-
-	entry, err := maasldap.LdapSearch(username, password, appConfig.LDAP, []string{"memberOf", "primaryTelexNumber"})
+	entry, err := ldap.LdapSearch(username, password, appConfig.LDAP, []string{"memberOf", "primaryTelexNumber"}, nil)
 	if err != nil {
-		WriteError(w, r.URL.Path, "LDAP search failed", "We could not verify your MAAS access. Please try again or contact an administrator.", err, http.StatusBadRequest)
+		WriteError(w, r.URL.Path, "LDAP search failed", "We could not verify your MAAS access. Please try again or contact an administrator.", err, http.StatusUnauthorized)
 		return
 	}
 
-	if !checkAllowedGroup(entry, allowedGroup) {
-		WriteError(w, r.URL.Path, "User is not in the allowed LDAP group", "You are not allowed to access MAAS.", errLDAPGroupCheck, http.StatusForbidden)
+	if err := ldap.CheckAllowedGroup(entry, allowedGroup); err != nil {
+		WriteError(w, r.URL.Path, "User is not in the allowed LDAP group", "You are not allowed to access MAAS.", err, http.StatusForbidden)
 		return
 	}
 
