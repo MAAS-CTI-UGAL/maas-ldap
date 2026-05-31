@@ -9,9 +9,21 @@ to the real MAAS backend.
 
 ## Documentation
 
-- [PREREQUISITES.md](PREREQUISITES.md): local, runtime, and production host prerequisites
-- [DEPLOYMENT.md](DEPLOYMENT.md): GitLab CI deployment, sudoers, and operations
-- [GIT.md](GIT.md): Git remote setup
+- [docs/PREREQUISITES.md](docs/PREREQUISITES.md): local, runtime, and production host prerequisites
+- [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md): environment variables and configuration model
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): GitLab CI deployment, sudoers, and operations
+- [docs/GIT.md](docs/GIT.md): Git remote setup
+
+## Configuration
+
+Startup configuration is split between app-wide settings and enabled backend
+settings. `config.Bootstrap()` loads the app config: listen address, LDAP
+connection settings, and logging. `backends.LoadEnabledConfigs()` loads one
+validated config object for each backend listed in `BACKENDS`.
+
+For the current MAAS backend, `MAAS_URL` and `MAAS_LDAP_ALLOWED_GROUP` are
+backend settings. Shared LDAP settings such as `LDAP_URL`, `LDAP_UPN_SUFFIX`,
+and `LDAP_BASE_DN` remain app-wide settings.
 
 ## Run
 
