@@ -1,45 +1,47 @@
 # Git Remotes
 
-These repositories use GitHub as the main remote for pulling/fetching, while pushes are sent to both GitHub and CTI GitLab.
+CTI is the main source of truth.
 
-After cloning a repository, run the matching commands below from inside the cloned repository.
+- Pull/fetch from CTI: `git@git.cti.ugal.ro:maas/maas-ldap.git`
+- Push to CTI and GitHub fork
 
-## maas-ldap
+## Clone
 
 ```bash
-git remote set-url origin git@github.com:TudorBogos/maas-ldap.git
+git clone git@git.cti.ugal.ro:maas/maas-ldap.git
+cd maas-ldap
+
+git remote set-url --push origin git@git.cti.ugal.ro:maas/maas-ldap.git
 git remote set-url --add --push origin git@github.com:TudorBogos/maas-ldap.git
-git remote set-url --add --push origin git@git.cti.ugal.ro:maas/maas-ldap.git
 ```
 
-Expected result:
+## Existing Clone
 
-```text
-origin  git@github.com:TudorBogos/maas-ldap.git (fetch)
-origin  git@github.com:TudorBogos/maas-ldap.git (push)
-origin  git@git.cti.ugal.ro:maas/maas-ldap.git (push)
+```bash
+git remote set-url origin git@git.cti.ugal.ro:maas/maas-ldap.git
+git remote set-url --push origin git@git.cti.ugal.ro:maas/maas-ldap.git
+git remote set-url --add --push origin git@github.com:TudorBogos/maas-ldap.git
 ```
 
 ## Check
 
 ```bash
 git remote -v
-git remote get-url origin
-git remote get-url --push --all origin
 ```
 
-## Usage
+Expected:
 
-Pull from GitHub only:
+```text
+origin    git@git.cti.ugal.ro:maas/maas-ldap.git (fetch)
+origin    git@git.cti.ugal.ro:maas/maas-ldap.git (push)
+origin    git@github.com:TudorBogos/maas-ldap.git (push)
+```
+
+## Daily Use
 
 ```bash
-git pull
+git pull --ff-only
+git push origin dev
 ```
 
-Push to both GitHub and CTI GitLab:
-
-```bash
-git push
-```
-
-Note: pushing to multiple remotes is not atomic. If one remote succeeds and the other fails, fix the failing remote and run `git push` again.
+`git pull --ff-only` pulls from CTI. `git push origin dev` pushes to both CTI and GitHub.
