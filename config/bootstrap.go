@@ -2,7 +2,6 @@ package config
 
 import (
 	"log"
-	"net/http"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -18,7 +17,6 @@ type AppConfig struct {
 	ListenAddress string
 	LDAP          LDAPConfig
 	Log           LogSettings
-	HTTPClient    *http.Client
 }
 
 // Bootstrap loads and validates environment-driven startup configuration.
@@ -42,7 +40,6 @@ func Bootstrap() AppConfig {
 		ListenAddress: listenAddress,
 		Log:           logSettings,
 		LDAP:          ldapConfig,
-		HTTPClient:    &http.Client{},
 	}
 }
 
