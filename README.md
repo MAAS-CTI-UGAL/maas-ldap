@@ -12,7 +12,6 @@ to the real MAAS backend.
 - [docs/PREREQUISITES.md](docs/PREREQUISITES.md): local, runtime, and production host prerequisites
 - [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md): environment variables and configuration model
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): GitLab CI deployment, sudoers, and operations
-- [docs/GIT.md](docs/GIT.md): Git remote setup
 
 ## Configuration
 
