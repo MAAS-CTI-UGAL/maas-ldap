@@ -5,11 +5,11 @@ import "net/http"
 // NewHandler creates the health check handler.
 func NewHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handleHealth(w, r)
+		handle(w, r)
 	}
 }
 
-func handleHealth(w http.ResponseWriter, r *http.Request) {
+func handle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("ok"))
