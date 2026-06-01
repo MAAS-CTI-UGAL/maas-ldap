@@ -1,6 +1,7 @@
 package maas
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"mime"
@@ -25,6 +26,7 @@ func decodeLoginRequest(r *http.Request) (url.Values, error) {
 	if err != nil {
 		return url.Values{}, err
 	}
+	r.Body = io.NopCloser(bytes.NewReader(body))
 
 	form, err := url.ParseQuery(string(body))
 	if err != nil {

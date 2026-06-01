@@ -30,10 +30,10 @@ MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
 `BACKENDS` is a comma-separated list of registered backend names to enable.
 The current registered backend is `maas`.
 
-`LDAP_URL`, `LDAP_UPN_SUFFIX`, and `LDAP_BASE_DN` configure the global LDAP
-server and user search shared by all backends. Backend-specific authorization
-groups use the `<BACKEND_NAME>_LDAP_ALLOWED_GROUP` pattern; the current MAAS
-backend requires `MAAS_LDAP_ALLOWED_GROUP`.
+`LDAP_URL`, `LDAP_UPN_SUFFIX`, and `LDAP_BASE_DN` configure the app-wide LDAP
+server and user search shared by all backends. Backend-specific values are
+loaded for each backend listed in `BACKENDS`; the current MAAS backend uses
+`MAAS_URL` and `MAAS_LDAP_ALLOWED_GROUP`.
 
 Allowed groups can be a short CN or a full DN:
 

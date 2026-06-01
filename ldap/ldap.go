@@ -3,6 +3,7 @@ package ldap
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	config "maas-ldap/config"
 
@@ -16,6 +17,7 @@ var (
 	errLDAPSearchConnect = errors.New("ldap search connect failed")
 	errLDAPSearchBind    = errors.New("ldap search bind failed")
 	errLDAPSearchQuery   = errors.New("ldap search query failed")
+	errLDAPGroupCheck    = errors.New("user is not in allowed group")
 )
 
 // SearchFilterFunc builds the LDAP search filter for a backend-specific user lookup.
@@ -45,7 +47,7 @@ func LdapBind(username, password string, config config.LDAPConfig) error {
 }
 
 // LdapSearch runs a backend-provided LDAP search with the supplied user credentials.
-func LdapSearch(username string, password string, config config.LDAPConfig, attributes []string) (*ldap.Entry, error) {
+func LdapSearch(username string, password string, config config.LDAPConfig, attributes []string, searchFilter SearchFilterFunc) (*ldap.Entry, error) {
 
 	if username == "" || password == "" {
 		return nil, errEmptyCredentials
@@ -63,14 +65,18 @@ func LdapSearch(username string, password string, config config.LDAPConfig, attr
 		return nil, errLDAPSearchBind
 	}
 
+	if searchFilter == nil {
+		searchFilter = DefaultUserFilter
+	}
+
 	req := ldap.NewSearchRequest(
 		config.BASE_DN,
 		ldap.ScopeWholeSubtree,
 		ldap.NeverDerefAliases,
-		1,
-		0,
+		2,
+		10,
 		false,
-		LDAPFilter(username),
+		searchFilter(username),
 		attributes,
 		nil,
 	)
@@ -91,9 +97,37 @@ func LdapSearch(username string, password string, config config.LDAPConfig, attr
 	return res.Entries[0], nil
 }
 
-func LDAPFilter(username string) string {
+func DefaultUserFilter(username string) string {
 	return fmt.Sprintf(
 		"(&(objectClass=user)(sAMAccountName=%s))",
 		ldap.EscapeFilter(username),
+	)
+}
+
+// CheckAllowedGroup reports whether an LDAP entry belongs to an allowed group.
+func CheckAllowedGroup(entry *ldap.Entry, allowedGroup string) error {
+	// Membership values are full DNs. The allowed group can be either a full DN
+	// or a short CN value.
+	for _, group := range entry.GetAttributeValues("memberOf") {
+		if isAllowedGroup(group, allowedGroup) {
+			return nil
+		}
+	}
+
+	return errLDAPGroupCheck
+}
+
+func isAllowedGroup(memberOf string, allowedGroup string) bool {
+	if strings.EqualFold(memberOf, allowedGroup) {
+		return true
+	}
+
+	if strings.Contains(allowedGroup, "=") {
+		return false
+	}
+
+	return strings.HasPrefix(
+		strings.ToLower(memberOf),
+		"cn="+strings.ToLower(allowedGroup)+",",
 	)
 }

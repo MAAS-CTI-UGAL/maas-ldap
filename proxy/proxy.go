@@ -8,7 +8,8 @@ import (
 	"net/url"
 )
 
-// ToTarget forwards a request with a rewritten body and streams the target response.
+// ToTarget forwards a request and streams the target response.
+// A nil body preserves the inbound request body; a non-nil body rewrites it.
 func ToTarget(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -29,8 +30,12 @@ func ToTarget(
 			proxyRequest.Out.URL.RawQuery = proxyRequest.In.URL.RawQuery
 			proxyRequest.Out.Host = target.Host
 
-			// Replay the validated form with the backend credential.
 			proxyRequest.Out.Method = proxyRequest.In.Method
+			if body == nil {
+				return
+			}
+
+			// Replay the validated form with the backend credential.
 			proxyRequest.Out.Body = io.NopCloser(bytes.NewReader(body))
 			proxyRequest.Out.ContentLength = int64(len(body))
 		},

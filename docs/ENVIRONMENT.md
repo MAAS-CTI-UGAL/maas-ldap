@@ -45,6 +45,13 @@ to stderr and are captured by `journald`. Use `journalctl -u maas-ldap` or
 
 ## Required Values
 
+Configuration is loaded in two layers. App-wide settings are loaded by
+`config.Bootstrap()` and include the listen address, logging, and shared LDAP
+connection/search settings. Backend settings are loaded by
+`backends.LoadEnabledConfigs()` for each backend named in `BACKENDS`; for the
+current MAAS backend, those settings are `MAAS_URL` and
+`MAAS_LDAP_ALLOWED_GROUP`.
+
 `BACKENDS`
 
 Comma-separated list of registered backends to enable. Only listed backends are
@@ -56,9 +63,9 @@ Current registered backend:
 BACKENDS=maas
 ```
 
-The global LDAP values configure how the app connects to LDAP and searches for
-users. Backend-specific LDAP values configure which LDAP group authorizes access
-to each enabled backend.
+The app-wide LDAP values configure how the app connects to LDAP and searches for
+users. Backend-specific values configure each target service and the LDAP group
+that authorizes access to it.
 
 `LDAP_URL`
 
@@ -120,7 +127,8 @@ The matching LDAP user must have:
 `MAAS_URL`
 
 Base URL for the MAAS backend. Include the scheme and host, but do not include
-the login path. The app appends `/MAAS/accounts/login/` itself.
+the login path. This value belongs to the MAAS backend config, and the backend
+appends `/MAAS/accounts/login/` itself.
 
 Examples:
 
