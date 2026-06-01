@@ -33,6 +33,16 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 	username := form.Get("username")
 	password := form.Get("password")
 
+	if username == "admin" {
+		// Allow the admin user to bypass LDAP checks,
+		// as they are not expected to have a valid LDAP account.
+		if err := proxy.ToTarget(w, r, target, nil); err != nil {
+			WriteError(w, r.URL.Path, "Target proxy failed", "MAAS login is temporarily unavailable. Please try again later.", err, http.StatusBadGateway)
+			return
+		}
+		return
+	}
+
 	entry, err := ldap.LdapSearch(username, password, appConfig.LDAP, []string{"memberOf", "primaryTelexNumber"}, nil)
 	if err != nil {
 		WriteError(w, r.URL.Path, "LDAP search failed", "We could not verify your MAAS access. Please try again or contact an administrator.", err, http.StatusUnauthorized)
