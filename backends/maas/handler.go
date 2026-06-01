@@ -33,7 +33,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request, appConfig config.AppCon
 	username := form.Get("username")
 	password := form.Get("password")
 
-	if username == "admin" {
+	if username == "maas_admin" {
 		// Allow the admin user to bypass LDAP checks,
 		// as they are not expected to have a valid LDAP account.
 		if err := proxy.ToTarget(w, r, target, nil); err != nil {
