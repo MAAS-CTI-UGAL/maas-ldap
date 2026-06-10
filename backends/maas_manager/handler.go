@@ -30,22 +30,16 @@ func handle(w http.ResponseWriter, r *http.Request, appConfig config.AppConfig, 
 		return
 	}
 
-	err = ldap.LdapBind(req.Username, req.Password, appConfig.LDAP)
+	entry, err := ldap.LdapSearch(req.Username, req.Password, appConfig.LDAP, []string{"memberOf"}, nil)
 	if err != nil {
 		WriteError(w, r.URL.Path, "LDAP search failed", "We could not verify your maas-manager access. Please try again or contact an administrator.", err, http.StatusUnauthorized)
 		return
 	}
 
-	// entry, err := ldap.LdapSearch(req.Username, req.Password, appConfig.LDAP, []string{"memberOf"}, nil)
-	// if err != nil {
-	// 	WriteError(w, r.URL.Path, "LDAP search failed", "We could not verify your maas-manager access. Please try again or contact an administrator.", err, http.StatusUnauthorized)
-	// 	return
-	// }
-
-	// if err := ldap.CheckAllowedGroup(entry, allowedGroup); err != nil {
-	// 	WriteError(w, r.URL.Path, "User is not in the allowed LDAP group", "You are not allowed to access maas-manager.", err, http.StatusForbidden)
-	// 	return
-	// }
+	if err := ldap.CheckAllowedGroup(entry, allowedGroup); err != nil {
+		WriteError(w, r.URL.Path, "User is not in the allowed LDAP group", "You are not allowed to access maas-manager.", err, http.StatusForbidden)
+		return
+	}
 
 	proxyBody, err := json.Marshal(managerLoginRequest{Username: req.Username})
 	if err != nil {
