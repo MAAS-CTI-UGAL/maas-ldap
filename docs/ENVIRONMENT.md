@@ -6,13 +6,14 @@ loaded, or if any required value is missing, startup stops with a fatal error.
 ## Example
 
 ```env
-BACKENDS=maas
+BACKENDS=maas,maas-manager
 
 LDAP_URL=ldap://ldap.example.internal:389
 LDAP_UPN_SUFFIX=example.internal
 LDAP_BASE_DN=DC=example,DC=internal
 
 MAAS_URL=https://maas.example.internal
+MAAS_MANAGER_URL=https://maas-manager.example.internal
 MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
 
 PORT=8080
@@ -23,13 +24,14 @@ PORT=8080
 For the CTI MAAS deployment, these values are known:
 
 ```env
-BACKENDS=maas
+BACKENDS=maas,maas-manager
 
 LDAP_URL=ldap://10.13.11.1:389
 LDAP_UPN_SUFFIX=cti.ugal.ro
 LDAP_BASE_DN=DC=CTI,DC=UGAL,DC=RO
 
 MAAS_URL=http://10.13.201.10:5240
+MAAS_MANAGER_URL=http://10.13.201.10:9091
 MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
 ```
 
@@ -50,17 +52,19 @@ Configuration is loaded in two layers. App-wide settings are loaded by
 connection/search settings. Backend settings are loaded by
 `backends.LoadEnabledConfigs()` for each backend named in `BACKENDS`; for the
 current MAAS backend, those settings are `MAAS_URL` and
-`MAAS_LDAP_ALLOWED_GROUP`.
+`MAAS_LDAP_ALLOWED_GROUP`. The `maas-manager` backend uses
+`MAAS_MANAGER_URL` and currently shares `MAAS_LDAP_ALLOWED_GROUP`.
 
 `BACKENDS`
 
 Comma-separated list of registered backends to enable. Only listed backends are
 loaded and validated. Names are matched case-insensitively.
 
-Current registered backend:
+Current registered backends:
 
 ```env
 BACKENDS=maas
+BACKENDS=maas,maas-manager
 ```
 
 The app-wide LDAP values configure how the app connects to LDAP and searches for
@@ -104,16 +108,15 @@ LDAP_BASE_DN=DC=example,DC=internal
 
 `<BACKEND_NAME>_LDAP_ALLOWED_GROUP`
 
-LDAP group required for backend access. Each backend owns its own allowed group
-using this naming pattern. For the current MAAS backend, the required variable
-is `MAAS_LDAP_ALLOWED_GROUP`.
+LDAP group required for backend access. The MAAS backend uses
+`MAAS_LDAP_ALLOWED_GROUP`. The `maas-manager` backend currently shares this
+same group, but can be split into its own group later.
 
 Examples:
 
 ```env
 MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
 MAAS_LDAP_ALLOWED_GROUP=CN=MaaS_Allowed,OU=Groups,DC=example,DC=internal
-GRAFANA_LDAP_ALLOWED_GROUP=Grafana_Allowed
 ```
 
 The value can be either a short group CN or a full group DN. Use a full DN when
@@ -123,6 +126,10 @@ The matching LDAP user must have:
 
 - at least one `memberOf` value matching `MAAS_LDAP_ALLOWED_GROUP`
 - exactly one non-empty `primaryTelexNumber` value containing the MAAS password
+
+`primaryTelexNumber` is only required for the MAAS backend. The `maas-manager`
+backend validates LDAP credentials and group membership, then forwards only the
+username to `maas-manager`.
 
 `MAAS_URL`
 
@@ -135,6 +142,18 @@ Examples:
 ```env
 MAAS_URL=https://maas.example.internal
 MAAS_URL=http://maas.example.internal:5240
+```
+
+`MAAS_MANAGER_URL`
+
+Base URL for the `maas-manager` backend. Include the scheme and host, but do
+not include `/manager/api/login`. The backend appends that path itself.
+
+Examples:
+
+```env
+MAAS_MANAGER_URL=https://maas-manager.example.internal
+MAAS_MANAGER_URL=http://maas-manager.example.internal:9091
 ```
 
 ## Optional Values
