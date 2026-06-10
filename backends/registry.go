@@ -3,6 +3,7 @@ package backends
 import (
 	"fmt"
 	"maas-ldap/backends/maas"
+	"maas-ldap/backends/maas_manager"
 	"os"
 	"strings"
 )
@@ -14,6 +15,13 @@ var definitions = map[string]Definition{
 		AllowedGroupEnv: "MAAS_LDAP_ALLOWED_GROUP",
 		LoginPath:       "/MAAS/accounts/login/",
 		NewLoginHandler: maas.NewHandler,
+	},
+	"maas-manager": {
+		Name:            "maas-manager",
+		BaseURLEnv:      "MAAS_MANAGER_URL",
+		AllowedGroupEnv: "MAAS_LDAP_ALLOWED_GROUP",
+		LoginPath:       "/manager/api/login",
+		NewLoginHandler: maas_manager.NewHandler,
 	},
 }
 
