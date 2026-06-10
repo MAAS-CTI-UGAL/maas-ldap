@@ -17,23 +17,25 @@ The app is configured from a `.env` file in the repository root.
 Required `.env` values:
 
 ```env
-BACKENDS=maas
+BACKENDS=maas,maas-manager
 
 LDAP_URL=ldap://example.internal:389
 LDAP_UPN_SUFFIX=example.internal
 LDAP_BASE_DN=DC=example,DC=internal
 
 MAAS_URL=https://maas.example.internal
+MAAS_MANAGER_URL=https://maas-manager.example.internal
 MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
 ```
 
 `BACKENDS` is a comma-separated list of registered backend names to enable.
-The current registered backend is `maas`.
+The current registered backends are `maas` and `maas-manager`.
 
 `LDAP_URL`, `LDAP_UPN_SUFFIX`, and `LDAP_BASE_DN` configure the app-wide LDAP
 server and user search shared by all backends. Backend-specific values are
 loaded for each backend listed in `BACKENDS`; the current MAAS backend uses
-`MAAS_URL` and `MAAS_LDAP_ALLOWED_GROUP`.
+`MAAS_URL`, and the `maas-manager` backend uses `MAAS_MANAGER_URL`. Both
+backends currently use `MAAS_LDAP_ALLOWED_GROUP`.
 
 Allowed groups can be a short CN or a full DN:
 
@@ -47,6 +49,9 @@ same CN in different OUs.
 
 The LDAP user entry must contain exactly one non-empty `primaryTelexNumber`
 value. The proxy treats this value as the MAAS password and does not log it.
+The `maas-manager` backend does not use `primaryTelexNumber`; it validates LDAP
+credentials and group membership, then forwards only the username to
+`maas-manager`.
 
 Optional values:
 

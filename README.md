@@ -1,11 +1,12 @@
 # maas-ldap
 
-LDAP-gated login proxy for MAAS.
+LDAP-gated login proxy for MAAS and related services.
 
-The service accepts MAAS login requests, validates submitted credentials
-against LDAP, checks group membership, replaces the submitted password with the
-MAAS password stored in LDAP `primaryTelexNumber`, and proxies the login request
-to the real MAAS backend.
+The service accepts backend login requests, validates submitted credentials
+against LDAP, checks group membership, and proxies the login request to the
+configured target. The MAAS backend replaces the submitted password with the
+MAAS password stored in LDAP `primaryTelexNumber`; the `maas-manager` backend
+forwards only the validated username.
 
 ## Documentation
 
@@ -21,8 +22,9 @@ connection settings, and logging. `backends.LoadEnabledConfigs()` loads one
 validated config object for each backend listed in `BACKENDS`.
 
 For the current MAAS backend, `MAAS_URL` and `MAAS_LDAP_ALLOWED_GROUP` are
-backend settings. Shared LDAP settings such as `LDAP_URL`, `LDAP_UPN_SUFFIX`,
-and `LDAP_BASE_DN` remain app-wide settings.
+backend settings. The `maas-manager` backend uses `MAAS_MANAGER_URL` and, for
+now, the same `MAAS_LDAP_ALLOWED_GROUP`. Shared LDAP settings such as
+`LDAP_URL`, `LDAP_UPN_SUFFIX`, and `LDAP_BASE_DN` remain app-wide settings.
 
 ## Run
 

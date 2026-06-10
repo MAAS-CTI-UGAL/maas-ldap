@@ -23,11 +23,12 @@ The GitLab CI/CD variable for the production `.env` file must be:
 Use these contents for the current CTI MAAS deployment:
 
 ```env
-BACKENDS=maas
+BACKENDS=maas,maas-manager
 LDAP_URL=ldap://10.13.11.1:389
 LDAP_UPN_SUFFIX=cti.ugal.ro
 LDAP_BASE_DN=DC=CTI,DC=UGAL,DC=RO
 MAAS_URL=http://10.13.201.10:5240
+MAAS_MANAGER_URL=http://10.13.201.10:9091
 MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
 ```
 
