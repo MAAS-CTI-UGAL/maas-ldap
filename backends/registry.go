@@ -19,7 +19,7 @@ var definitions = map[string]Definition{
 	"maas-manager": {
 		Name:            "maas-manager",
 		BaseURLEnv:      "MAAS_MANAGER_URL",
-		AllowedGroupEnv: "MAAS_LDAP_ALLOWED_GROUP",
+		AllowedGroupEnv: "MAAS_MANAGER_LDAP_ALLOWED_GROUP",
 		LoginPath:       "/manager/api/login",
 		NewLoginHandler: maas_manager.NewHandler,
 	},
