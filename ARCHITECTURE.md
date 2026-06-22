@@ -20,9 +20,9 @@ maintainer guide, not a status tracker.
 - wrap the mux with request logging middleware
 - serve HTTP on `AppConfig.ListenAddress`
 
-The listen address is loaded from `PORT` and defaults to `:9090`. If `PORT` is
-a bare port such as `9090`, config normalizes it to `:9090`; host-qualified
-values such as `127.0.0.1:9090` are used as provided.
+The listen address is loaded from `PORT` and defaults to `127.0.0.1:9090`, so
+the service is reachable only from the local host. A `PORT` value may override
+this address when a different deployment topology explicitly requires it.
 
 Configuration validation happens during startup. App-wide LDAP and logging
 settings are loaded by `config.Bootstrap()`. Backend target URLs and allowed
@@ -110,7 +110,7 @@ deployment model should remain split by backend.
 Optional app-wide environment:
 
 ```text
-PORT=:9090
+PORT=127.0.0.1:9090
 LOG_PATH
 ```
 

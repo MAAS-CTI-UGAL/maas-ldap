@@ -24,7 +24,7 @@ LDAP_UPN_SUFFIX=example.internal
 LDAP_BASE_DN=DC=example,DC=internal
 
 MAAS_URL=https://maas.example.internal
-MAAS_MANAGER_URL=https://maas-manager.example.internal
+MAAS_MANAGER_URL=http://127.0.0.1:9091
 MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
 ```
 

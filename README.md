@@ -35,7 +35,7 @@ go run .
 By default, the service listens on:
 
 ```text
-:9090
+127.0.0.1:9090
 ```
 
 ## Build

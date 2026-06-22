@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	defaultListenAddress = ":9090"
+	defaultListenAddress = "127.0.0.1:9090"
 	envPort              = "PORT"
 )
 
@@ -44,9 +44,9 @@ func Bootstrap() AppConfig {
 }
 
 func loadListenAddress() string {
-	port := envOrDefault(envPort, defaultListenAddress)
-	if port[0] == ':' || strings.Contains(port, ":") {
-		return port
+	address := envOrDefault(envPort, defaultListenAddress)
+	if address[0] == ':' || strings.Contains(address, ":") {
+		return address
 	}
-	return ":" + port
+	return ":" + address
 }

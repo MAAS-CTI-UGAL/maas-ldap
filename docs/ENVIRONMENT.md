@@ -13,10 +13,10 @@ LDAP_UPN_SUFFIX=example.internal
 LDAP_BASE_DN=DC=example,DC=internal
 
 MAAS_URL=https://maas.example.internal
-MAAS_MANAGER_URL=https://maas-manager.example.internal
+MAAS_MANAGER_URL=http://127.0.0.1:9091
 MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
 
-PORT=8080
+PORT=127.0.0.1:9090
 ```
 
 ## MAAS CTI Example
@@ -31,7 +31,7 @@ LDAP_UPN_SUFFIX=cti.ugal.ro
 LDAP_BASE_DN=DC=CTI,DC=UGAL,DC=RO
 
 MAAS_URL=http://10.13.201.10:5240
-MAAS_MANAGER_URL=http://10.13.201.10:9091
+MAAS_MANAGER_URL=http://127.0.0.1:9091
 MAAS_LDAP_ALLOWED_GROUP=MaaS_Allowed
 ```
 
@@ -160,14 +160,14 @@ MAAS_MANAGER_URL=http://maas-manager.example.internal:9091
 
 `PORT`
 
-Listen port or address. If unset, the app listens on `0.0.0.0:9090`.
+Listen port or address. If unset, the app listens on `127.0.0.1:9090`, so the
+service is available only to local processes such as the reverse proxy. Use a
+non-loopback address only when the deployment boundary explicitly requires it.
 
 Examples:
 
 ```env
-PORT=8080
-PORT=:8080
-PORT=127.0.0.1:8080
+PORT=127.0.0.1:9090
 ```
 
 `LOG_PATH`
