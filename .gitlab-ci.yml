@@ -1,11 +1,25 @@
 stages:
+  - test
   - check
   - deploy
+
+test:
+  stage: test
+  tags:
+    - maas-check
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+  script:
+    - go mod download
+    - go test ./...
 
 check:
   stage: check
   tags:
     - maas-check
+  needs:
+    - test
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_PIPELINE_SOURCE == "push"'
