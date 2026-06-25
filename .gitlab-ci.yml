@@ -12,7 +12,13 @@ test:
     - if: '$CI_PIPELINE_SOURCE == "push"'
   script:
     - go mod download
-    - go test ./...
+    - go test ./... -coverprofile=coverage.out
+    - go tool cover -func=coverage.out
+  coverage: '/total:\s+\(statements\)\s+\d+\.\d+%/'
+  artifacts:
+    when: always
+    paths:
+      - coverage.out
 
 check:
   stage: check
