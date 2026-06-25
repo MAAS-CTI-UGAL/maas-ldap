@@ -12,6 +12,7 @@ forwards only the validated username.
 
 - [docs/PREREQUISITES.md](docs/PREREQUISITES.md): local, runtime, and production host prerequisites
 - [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md): environment variables and configuration model
+- [docs/TESTING.md](docs/TESTING.md): test commands, coverage, and conventions
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): GitLab CI deployment, sudoers, and operations
 
 ## Configuration
