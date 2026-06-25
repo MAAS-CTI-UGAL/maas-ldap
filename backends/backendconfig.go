@@ -13,8 +13,8 @@ import (
 // LoginHandlerFactory creates one backend login route handler.
 type LoginHandlerFactory func(config.AppConfig, url.URL, string) http.HandlerFunc
 
-// Definition contains the static configuration for one known backend.
-type Definition struct {
+// BackendDefinition contains the static configuration for one known backend.
+type BackendDefinition struct {
 	Name            string
 	BaseURLEnv      string
 	AllowedGroupEnv string
@@ -22,35 +22,35 @@ type Definition struct {
 	NewLoginHandler LoginHandlerFactory
 }
 
-// Config contains a loaded backend definition and its environment values.
-type Config struct {
-	Definition
+// BackendConfig contains a loaded backend definition and its environment values.
+type BackendConfig struct {
+	BackendDefinition
 	BaseURL      string
 	Target       url.URL
 	AllowedGroup string
 }
 
-// LoadConfig loads and validates one backend definition.
-func LoadConfig(definition Definition) (Config, error) {
+// LoadBackendConfig loads and validates one backend definition.
+func LoadBackendConfig(definition BackendDefinition) (BackendConfig, error) {
 	if definition.NewLoginHandler == nil {
-		return Config{}, fmt.Errorf("backend %q login handler is not configured", definition.Name)
+		return BackendConfig{}, fmt.Errorf("backend %q login handler is not configured", definition.Name)
 	}
 
 	baseURL, target, err := loadBackendTarget(definition.BaseURLEnv, definition.LoginPath)
 	if err != nil {
-		return Config{}, err
+		return BackendConfig{}, err
 	}
 
 	allowedGroup, err := LoadAllowedGroup(definition.AllowedGroupEnv)
 	if err != nil {
-		return Config{}, err
+		return BackendConfig{}, err
 	}
 
-	return Config{
-		Definition:   definition,
-		BaseURL:      baseURL,
-		Target:       target,
-		AllowedGroup: allowedGroup,
+	return BackendConfig{
+		BackendDefinition: definition,
+		BaseURL:           baseURL,
+		Target:            target,
+		AllowedGroup:      allowedGroup,
 	}, nil
 }
 

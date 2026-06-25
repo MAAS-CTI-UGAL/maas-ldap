@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var definitions = map[string]Definition{
+var definitions = map[string]BackendDefinition{
 	"maas": {
 		Name:            "maas",
 		BaseURLEnv:      "MAAS_URL",
@@ -28,13 +28,13 @@ var definitions = map[string]Definition{
 // LoadEnabledConfigs loads and validates configuration for each backend listed in BACKENDS.
 // Backend names are comma-separated, case-insensitive, and must match entries in definitions.
 // It returns an error when BACKENDS is empty, contains duplicates, or names an unknown backend.
-func LoadEnabledConfigs() ([]Config, error) {
+func LoadEnabledConfigs() ([]BackendConfig, error) {
 	backendNames := strings.TrimSpace(os.Getenv("BACKENDS"))
 	if backendNames == "" {
 		return nil, fmt.Errorf("backend configuration is incomplete. Please set BACKENDS.")
 	}
 
-	var configs []Config
+	var configs []BackendConfig
 	seen := map[string]bool{}
 	for _, backendName := range strings.Split(backendNames, ",") {
 		backendName = strings.ToLower(strings.TrimSpace(backendName))
@@ -52,7 +52,7 @@ func LoadEnabledConfigs() ([]Config, error) {
 			return nil, fmt.Errorf("unknown backend %q in BACKENDS", backendName)
 		}
 
-		config, err := LoadConfig(definition)
+		config, err := LoadBackendConfig(definition)
 		if err != nil {
 			return nil, err
 		}
